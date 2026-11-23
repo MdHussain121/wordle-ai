@@ -26,9 +26,12 @@ http = [
   "fastapi>=0.110",
   "uvicorn>=0.29",
 ]
-# Reserved: Phase 6 is blocked on Phase 3's classic exact policy, so no ML dependency
-# is admitted yet.
-ml = []
+# Phase 6 ML experimentation dependencies
+ml = [
+  "scikit-learn>=1.4",
+  "torch>=2.2",
+  "pyarrow>=15.0",
+]
 # Reserved: the measured budgets do not justify a Rust kernel (see the roadmap).
 rust = []
 

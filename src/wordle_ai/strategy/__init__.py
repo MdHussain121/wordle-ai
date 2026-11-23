@@ -7,6 +7,11 @@ from typing import Callable
 from .base import Budget, Decision, HeuristicStrategy, PartitionStats, ScoreBreakdown, Strategy
 from .exact import ExactStrategy
 from .lookahead import LookaheadTwoPly, RolloutRandom
+try:
+    from ..ml.strategy import LearnedValueStrategy, LearnedRankerStrategy
+    _ML_STRATEGIES = (LearnedValueStrategy, LearnedRankerStrategy)
+except ImportError:
+    _ML_STRATEGIES = ()
 from .heuristics import (
     BayesCost,
     Entropy,
@@ -40,6 +45,7 @@ _FACTORIES: dict[str, Callable[..., object]] = {
         PositionalFrequency,
         RolloutRandom,
         WeightedEntropy,
+        *_ML_STRATEGIES,
     )
 }
 
@@ -48,7 +54,7 @@ STRATEGY_NAMES: tuple[str, ...] = tuple(sorted(_FACTORIES))
 #: Strategies that need no external artifact; ``bench run --strategies all`` uses
 #: these. ``exact`` is opt-in because it requires a policy built for the profile.
 HEURISTIC_STRATEGY_NAMES: tuple[str, ...] = tuple(
-    name for name in STRATEGY_NAMES if name != "exact"
+    name for name in STRATEGY_NAMES if name != "exact" and not name.startswith("ml.")
 )
 
 

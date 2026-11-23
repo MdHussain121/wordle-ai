@@ -1,0 +1,89 @@
+{
+  "model_name": "ml.value_lookahead",
+  "profile_id": "classic.en.5",
+  "verdict": "admitted",
+  "passed_all": true,
+  "metrics": [
+    {
+      "id": "G1",
+      "name": "Average Guesses",
+      "threshold": "improvement >= 0.02",
+      "baseline": "3.6696",
+      "model": "3.6023",
+      "delta": "+0.0673",
+      "passed": true,
+      "rationale": "Delta is +0.0673; requires >= +0.02 improvement."
+    },
+    {
+      "id": "G2",
+      "name": "Worst-Case Turns",
+      "threshold": "<= baseline",
+      "baseline": 5,
+      "model": 5,
+      "delta": "+0",
+      "passed": true,
+      "rationale": "Model worst-case is 5 vs baseline 5."
+    },
+    {
+      "id": "G3",
+      "name": "Failure Rate",
+      "threshold": "<= baseline (0%)",
+      "baseline": "0.00%",
+      "model": "0.00%",
+      "delta": "+0.00%",
+      "passed": true,
+      "rationale": "Model failure rate is 0.00%."
+    },
+    {
+      "id": "G4",
+      "name": "Decision Latency (p95)",
+      "threshold": "added p95 <= 5.0 ms",
+      "baseline": "18085.24 ms",
+      "model": "17929.42 ms",
+      "delta": "-155.81 ms",
+      "passed": true,
+      "rationale": "Added latency is -155.81 ms (budget 5.0 ms)."
+    },
+    {
+      "id": "G5",
+      "name": "Cross-Profile Check",
+      "threshold": "regression <= 0.02",
+      "baseline": "0.0000",
+      "model": "0.0000",
+      "delta": "+0.0000",
+      "passed": true,
+      "rationale": "Cross-profile delta is +0.0000 (threshold <= 0.02)."
+    },
+    {
+      "id": "G6",
+      "name": "Calibration (ECE)",
+      "threshold": "< 0.05",
+      "baseline": "< 0.05",
+      "model": "0.0150",
+      "delta": "0.0150",
+      "passed": true,
+      "rationale": "Expected calibration error is 0.0150."
+    },
+    {
+      "id": "G7",
+      "name": "Reproducibility",
+      "threshold": "deterministic + checksum",
+      "baseline": "true",
+      "model": "det=True, sha=True",
+      "delta": "ok",
+      "passed": true,
+      "rationale": "Deterministic inference with versioned weights and SHA-256 sidecar."
+    },
+    {
+      "id": "G8",
+      "name": "Explainability",
+      "threshold": "renderable breakdown",
+      "baseline": "true",
+      "model": "True",
+      "delta": "ok",
+      "passed": true,
+      "rationale": "Model decisions include breakdown features and confidence values."
+    }
+  ],
+  "summary": "All 8 admission gates PASSED. Model 'ml.value_lookahead' qualifies for product admission under flag ml.enabled = false."
+}

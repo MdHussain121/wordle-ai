@@ -1,0 +1,44 @@
+{
+  "value_regressor": {
+    "model_name": "ValueRegressor (HistGBDT)",
+    "target": "expected_remaining_turns",
+    "train_mae": 0.009641300175592804,
+    "val_mae": 0.017085309166978563,
+    "test_mae": 0.016713714754868277,
+    "train_rmse": 0.029177546047529666,
+    "val_rmse": 0.044116500522745766,
+    "test_rmse": 0.04276651354840201,
+    "top1_accuracy": null,
+    "top3_accuracy": null,
+    "training_time_s": 0.36936400000558933,
+    "inference_p95_ms": 7.693179999841958
+  },
+  "value_network": {
+    "model_name": "ValueNetwork (PyTorch MLP)",
+    "target": "expected_remaining_turns",
+    "train_mae": 0.017825040966272354,
+    "val_mae": 0.03324730321764946,
+    "test_mae": 0.03110058791935444,
+    "train_rmse": 0.05770840123295784,
+    "val_rmse": 0.10142972320318222,
+    "test_rmse": 0.09755406528711319,
+    "top1_accuracy": null,
+    "top3_accuracy": null,
+    "training_time_s": 19.440965800000413,
+    "inference_p95_ms": 0.08266000259027337
+  },
+  "policy_ranker": {
+    "model_name": "PolicyRanker (HistGBDT)",
+    "target": "optimal_guess",
+    "train_mae": 0.0,
+    "val_mae": 0.0,
+    "test_mae": 0.0,
+    "train_rmse": 0.0,
+    "val_rmse": 0.0,
+    "test_rmse": 0.0,
+    "top1_accuracy": 0.9257142857142857,
+    "top3_accuracy": 0.9923809523809524,
+    "training_time_s": 0.5131013999998686,
+    "inference_p95_ms": 5.8372799987409945
+  }
+}

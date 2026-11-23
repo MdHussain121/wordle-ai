@@ -24,6 +24,7 @@ Generated from the Typer command tree by `tools/build_cli_reference.py`. Do not 
 │ policy    Build and verify exact DP policy artifacts.                       │
 │ prior     Calibrate answer priors against held-out answers.                 │
 │ lab       Compare strategies and inspect the dictionary.                    │
+│ ml        Machine Learning research, distillation and gate commands.        │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -323,6 +324,65 @@ Generated from the Typer command tree by `tools/build_cli_reference.py`. Do not 
 │ --data-dir        <path>       Override data directory.                     │
 │ --json            <bool>       Emit JSON.                                   │
 │ --help            <bool>       Show this message and exit.                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## `wordle-ai ml extract`
+
+```text
+                                                                               
+ Usage: wordle-ai ml extract [OPTIONS]                                         
+                                                                               
+ Extract (state, k, guess, value) dataset from verified DP policy with zero    
+ leakage.                                                                      
+                                                                               
+┌─ Options ───────────────────────────────────────────────────────────────────┐
+│ --policy         <path>  Path to exact DP policy JSON.                      │
+│                          [default:                                          │
+│                          policies\classic.en.5.normal.uniform.policy.json]  │
+│ --profile        <str>   Profile id. [default: classic.en.5]                │
+│ --output         <path>  Path to output Parquet file.                       │
+│                          [default: data\ml\dp_training_pairs.parquet]       │
+│ --config         <path>  Configuration file. [default: config\default.toml] │
+│ --json           <bool>  Emit raw JSON summary.                             │
+│ --help           <bool>  Show this message and exit.                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## `wordle-ai ml gate`
+
+```text
+                                                                               
+ Usage: wordle-ai ml gate [OPTIONS]                                            
+                                                                               
+ Display admission gate evaluation report (G1–G8).                             
+                                                                               
+┌─ Options ───────────────────────────────────────────────────────────────────┐
+│ --bench-data        <path>  Path to benchmark metrics JSON.                 │
+│                             [default: data\bench\phase6_ml_bench.json]      │
+│ --json              <bool>  Emit raw JSON report.                           │
+│ --help              <bool>  Show this message and exit.                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## `wordle-ai ml train`
+
+```text
+                                                                               
+ Usage: wordle-ai ml train [OPTIONS]                                           
+                                                                               
+ Train ValueNetwork, ValueRegressor, and PolicyRanker distillation models.     
+                                                                               
+┌─ Options ───────────────────────────────────────────────────────────────────┐
+│ --policy            <path>  Path to exact DP policy JSON.                   │
+│                             [default:                                       │
+│                             policies\classic.en.5.normal.uniform.policy.js… │
+│ --profile           <str>   Profile id. [default: classic.en.5]             │
+│ --output-dir        <path>  Directory to save models. [default: models]     │
+│ --config            <path>  Configuration file.                             │
+│                             [default: config\default.toml]                  │
+│ --json              <bool>  Emit raw JSON summary.                          │
+│ --help              <bool>  Show this message and exit.                     │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 

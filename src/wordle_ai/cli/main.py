@@ -11,7 +11,7 @@ from __future__ import annotations
 import typer
 
 from ..buildinfo import build_info, version_line
-from .commands import bench, config_cmd, lab_cmd, lex, policy_cmd, prior_cmd, strategy_cmd
+from .commands import bench, config_cmd, lab_cmd, lex, ml_cmd, policy_cmd, prior_cmd, strategy_cmd
 from .commands.diagnose_cmd import diagnose as diagnose_command
 from .commands.play_cmd import play as play_command, selfplay as selfplay_command
 from .output import emit
@@ -28,6 +28,7 @@ app.add_typer(strategy_cmd.app, name="strategy")
 app.add_typer(policy_cmd.app, name="policy")
 app.add_typer(prior_cmd.app, name="prior")
 app.add_typer(lab_cmd.app, name="lab")
+app.add_typer(ml_cmd.app, name="ml")
 # Root commands, not groups: `wordle-ai play ...`, not `play play`.
 app.command("play")(play_command)
 app.command("selfplay")(selfplay_command)
