@@ -1,0 +1,168 @@
+:root {
+  --color-wordle-gray: #3a3a3c;
+  --color-wordle-yellow: #b59f3b;
+  --color-wordle-green: #538d4e;
+  --color-wordle-border: #565758;
+  --color-wordle-empty: #272729;
+  --color-wordle-bg: #121213;
+  --color-wordle-card: #18181a;
+  --color-wordle-surface: #222226;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--color-wordle-bg);
+  color: #f3f4f6;
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Wordle Tile Grid & Animation */
+.wordle-tile {
+  width: 54px;
+  height: 54px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  user-select: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.wordle-tile:active {
+  transform: scale(0.94);
+}
+
+.tile-empty {
+  border: 2px solid #333336;
+  background: transparent;
+  color: #fff;
+}
+
+.tile-current {
+  border: 2px solid #6b7280;
+  background: var(--color-wordle-empty);
+  color: #fff;
+}
+
+.tile-gray {
+  background-color: var(--color-wordle-gray);
+  border: 2px solid var(--color-wordle-gray);
+  color: #ffffff;
+}
+
+.tile-yellow {
+  background-color: var(--color-wordle-yellow);
+  border: 2px solid var(--color-wordle-yellow);
+  color: #ffffff;
+}
+
+.tile-green {
+  background-color: var(--color-wordle-green);
+  border: 2px solid var(--color-wordle-green);
+  color: #ffffff;
+}
+
+/* Keyboard keys */
+.key-btn {
+  height: 48px;
+  min-width: 34px;
+  padding: 0 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background-color: #818384;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.key-btn:active {
+  transform: scale(0.92);
+}
+
+.key-wide {
+  min-width: 62px;
+  font-size: 0.75rem;
+  background-color: #565758;
+}
+
+.key-gray {
+  background-color: var(--color-wordle-gray);
+}
+
+.key-yellow {
+  background-color: var(--color-wordle-yellow);
+}
+
+.key-green {
+  background-color: var(--color-wordle-green);
+}
+
+/* Candidate word pills */
+.candidate-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background-color: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e4e4e7;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.candidate-pill:hover {
+  background-color: #3f3f46;
+  border-color: #10b981;
+  color: #10b981;
+}
+
+/* Custom Table Styles */
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.custom-table th {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid #333336;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.custom-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #27272a;
+  color: #e5e7eb;
+}
+
+.custom-table tr:hover td {
+  background-color: rgba(255, 255, 255, 0.03);
+}

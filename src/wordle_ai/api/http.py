@@ -22,7 +22,9 @@ import random
 from typing import Sequence
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from ..errors import WordleError
@@ -30,7 +32,6 @@ from ..strategy import HEURISTIC_STRATEGY_NAMES, get_strategy
 from ..strategy.exact import ExactStrategy
 from ..types import Pattern, Profile, Turn
 from .service import RecommendationView, SolverService, compare_strategies, dictionary_report
-from .web_gui import WEB_GUI_HTML
 
 
 class TurnModel(BaseModel):
@@ -102,11 +103,34 @@ def create_app(service: SolverService, *, policy: dict | None = None) -> FastAPI
         description="Wordle assistant and strategy laboratory backed by SolverService.",
     )
 
-    # Web GUI routes
+    # Enable CORS for React frontend (Vite dev server or custom port)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Web GUI routes / static files
+    dist_dir = Path("web") / "dist"
+    if dist_dir.exists():
+        app.mount("/assets", StaticFiles(directory=dist_dir / "assets"), name="assets")
+
     @app.get("/", response_class=HTMLResponse)
     @app.get("/app", response_class=HTMLResponse)
     def index() -> HTMLResponse:
-        return HTMLResponse(WEB_GUI_HTML)
+        dist_index = Path("web") / "dist" / "index.html"
+        if dist_index.exists():
+            return HTMLResponse(dist_index.read_text(encoding="utf-8"))
+        return HTMLResponse(
+            "<!DOCTYPE html><html><head><title>Wordle AI React API</title></head>"
+            "<body style='font-family: sans-serif; background: #121213; color: #fff; padding: 2rem;'>"
+            "<h1>Wordle AI API is Active</h1>"
+            "<p>React GUI development server runs on <a style='color: #538d4e;' href='http://localhost:5173'>http://localhost:5173</a>.</p>"
+            "<p>To build production assets, run <code>npm run build</code> inside <code>web/</code>.</p>"
+            "</body></html>"
+        )
 
     @app.get("/health")
     def health() -> dict:

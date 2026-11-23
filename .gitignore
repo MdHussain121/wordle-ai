@@ -14,6 +14,8 @@ dist/
 # Local tooling
 .DS_Store
 Thumbs.db
+node_modules/
+**/node_modules/
 
 # Rust
 target/

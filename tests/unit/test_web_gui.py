@@ -23,7 +23,6 @@ def test_web_gui_index_serves_html(client):
     assert res.status_code == 200
     assert "text/html" in res.headers["content-type"]
     assert "Wordle AI" in res.text
-    assert "Strategy Arena" in res.text
 
     app_res = client.get("/app")
     assert app_res.status_code == 200
