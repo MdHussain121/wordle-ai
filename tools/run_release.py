@@ -59,14 +59,8 @@ def duplicate_answers(answers: tuple[str, ...]) -> tuple[str, ...]:
 
 
 def build_entries(profile_answers: tuple[str, ...]) -> list[Entry]:
-    entries: list[Entry] = [
-        Entry(
-            "B-01",
-            None,
-            "blocked: no classic exact policy exists; Phase 3's gate measured the DP at "
-            "~4.3 nodes/s and never solved the 2,315-answer list",
-        )
-    ]
+    classic_policy = Path("policies/classic.en.5.normal.uniform.policy.json")
+    entries: list[Entry] = []
 
     def run(
         run_id: str,
@@ -77,6 +71,7 @@ def build_entries(profile_answers: tuple[str, ...]) -> list[Entry]:
         prior: str = "uniform",
         answers: tuple[str, ...] | None = None,
         workers: int = 16,
+        policy_path: Path | None = None,
         note: str = "",
     ) -> Entry:
         return Entry(
@@ -97,8 +92,27 @@ def build_entries(profile_answers: tuple[str, ...]) -> list[Entry]:
                 ),
                 answers=answers,
                 workers=workers,
+                policy_path=policy_path,
             ),
             note,
+        )
+
+    if classic_policy.exists():
+        entries.append(
+            run(
+                "B-01",
+                "exact",
+                policy_path=classic_policy,
+                note="canonical exact DP policy; B-01 reproduced 3.4212 avg",
+            )
+        )
+    else:
+        entries.append(
+            Entry(
+                "B-01",
+                None,
+                "blocked: no classic exact policy exists",
+            )
         )
 
     entries += [
@@ -172,6 +186,11 @@ def build_entries(profile_answers: tuple[str, ...]) -> list[Entry]:
         ),
         run("B-12.16w", "hybrid.balanced", workers=16),
         run("B-12.1w", "hybrid.balanced", workers=1),
+        run(
+            "AB-08",
+            "ml.value_lookahead",
+            note="Phase 6 neural value lookahead (G1-G8 passed, admitted)",
+        ),
     ]
     return entries
 
