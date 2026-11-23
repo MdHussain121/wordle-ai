@@ -16,6 +16,8 @@ Generated from the Typer command tree by `tools/build_cli_reference.py`. Do not 
 │ play      Recommend a guess, with a plain-language reason.                  │
 │ selfplay  Self-play: a visible trace for one game, aggregates for many.     │
 │ diagnose  Run every health check; exit non-zero when one fails.             │
+│ web       Launch the interactive Wordle AI Web GUI Studio & Copilot in your │
+│           browser.                                                          │
 │ version   Print the package version and schema version.                     │
 │ lex       Lexicon fetch, build, inspection and verification.                │
 │ config    Inspect and validate configuration.                               │
@@ -592,5 +594,30 @@ Generated from the Typer command tree by `tools/build_cli_reference.py`. Do not 
                                                                                
 ┌─ Options ───────────────────────────────────────────────────────────────────┐
 │ --help        <bool>  Show this message and exit.                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## `wordle-ai web`
+
+```text
+                                                                               
+ Usage: wordle-ai web [OPTIONS]                                                
+                                                                               
+ Launch the interactive Wordle AI Web GUI Studio & Copilot in your browser.    
+                                                                               
+┌─ Options ───────────────────────────────────────────────────────────────────┐
+│ --profile                     <str>   Profile id to load.                   │
+│                                       [default: classic.en.5]               │
+│ --host                        <str>   Host interface to bind to.            │
+│                                       [default: 127.0.0.1]                  │
+│ --port                        <int>   Port to listen on. [default: 8000]    │
+│ --browser     --no-browser    <bool>  Open web browser on startup.          │
+│                                       [default: browser]                    │
+│ --config                      <path>  Path to TOML config.                  │
+│                                       [default: config\default.toml]        │
+│ --data-dir                    <path>  Override data directory.              │
+│ --policy                      <path>  Path to verified exact DP policy      │
+│                                       artifact.                             │
+│ --help                        <bool>  Show this message and exit.           │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

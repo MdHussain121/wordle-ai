@@ -11,9 +11,10 @@ from __future__ import annotations
 import typer
 
 from ..buildinfo import build_info, version_line
-from .commands import bench, config_cmd, lab_cmd, lex, ml_cmd, policy_cmd, prior_cmd, strategy_cmd
+from .commands import bench, config_cmd, lab_cmd, lex, ml_cmd, policy_cmd, prior_cmd, strategy_cmd, web_cmd
 from .commands.diagnose_cmd import diagnose as diagnose_command
 from .commands.play_cmd import play as play_command, selfplay as selfplay_command
+from .commands.web_cmd import web as web_command
 from .output import emit
 
 app = typer.Typer(
@@ -33,6 +34,7 @@ app.add_typer(ml_cmd.app, name="ml")
 app.command("play")(play_command)
 app.command("selfplay")(selfplay_command)
 app.command("diagnose")(diagnose_command)
+app.command("web")(web_command)
 
 
 def _version_callback(value: bool) -> None:

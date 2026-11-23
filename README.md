@@ -50,6 +50,23 @@ wordle-ai lex fetch --source user \
   --guesses data/user/classic_guesses.txt --attest-license
 ```
 
+## Web Studio & Interactive Copilot
+
+For players and researchers who prefer an intuitive graphical interface over the terminal:
+
+```bash
+# Launch the local Web GUI Studio (automatically opens in your browser at http://localhost:8000)
+wordle-ai web
+```
+
+Features included in the Web GUI:
+- **Interactive Wordle Grid**: 6×5 board with click-to-cycle tile feedback (Gray &rarr; Yellow &rarr; Green) and on-screen keyboard.
+- **Live AI Copilot**: Real-time recommendations powered by the provably optimal Exact DP policy or neural surrogate models, displaying candidate counts, win probabilities, and plain-language explanations.
+- **Strategy Arena**: Real-time head-to-head comparison of all algorithms (Exact DP, Neural Value Lookahead, Information Entropy, Minimax, Policy Ranker) on the current board state with disagreement auditing.
+- **AI Simulation**: Enter any secret word (or pick a random one) and watch the AI solve it step-by-step with full visual feedback and metrics.
+- **Phase 6 ML Hub**: Interactive scorecard of G1–G8 admission gates, model parameter inspectability, and distillation metrics.
+- **Dictionary Inspector**: Instant validation and lexicon status lookup for any 5-letter word.
+
 ## Play
 
 ```bash

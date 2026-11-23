@@ -125,6 +125,7 @@ class SolverService:
         self.attempts = attempts
         self.prior_weights = prior_weights
         self.top_candidates = top_candidates
+        self.policy = policy
         if strategy == "exact":
             if policy is None:
                 raise ValueError(
@@ -215,11 +216,14 @@ class SolverService:
                     "pattern": pattern.render(),
                     "solved": solved,
                     "remaining_before": view.remaining,
+                    "remaining_after": 1 if solved else None,
+                    "explanation": recommendation.explanation,
                 }
             )
             if solved:
                 return turn_rows, True
             state = state.apply(recommendation.guess, pattern, table=self.rows)
+            turn_rows[-1]["remaining_after"] = state.remaining
         return turn_rows, False
 
     # ---- internals --------------------------------------------------------
@@ -243,6 +247,7 @@ class StrategyComparison:
     p_solve_now: float
     branch: str
     elapsed_ms: float
+    explanation: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -255,6 +260,7 @@ class StrategyComparison:
             "p_solve_now": self.p_solve_now,
             "branch": self.branch,
             "elapsed_ms": self.elapsed_ms,
+            "explanation": self.explanation,
         }
 
 
@@ -278,7 +284,24 @@ def compare_strategies(
         seen.add(name)
     picks: list[StrategyComparison] = []
     for name in names:
-        strategy = get_strategy(name, prior_weights=service.prior_weights)
+        if name == "exact":
+            pol = getattr(service, "policy", None)
+            if pol is None and isinstance(service.strategy, ExactStrategy):
+                pol = service.strategy.policy
+            if pol is None:
+                from pathlib import Path
+                default_p = Path("policies") / f"{service.profile.profile_id}.normal.uniform.policy.json"
+                if default_p.exists():
+                    try:
+                        from ..solver.policy import load_policy
+                        pol = load_policy(default_p, profile=service.profile, verify=False)
+                    except Exception:
+                        pol = None
+            if pol is None:
+                raise ValueError("exact strategy requires policy artifact")
+            strategy = get_strategy("exact", policy=pol)
+        else:
+            strategy = get_strategy(name, prior_weights=service.prior_weights)
         decision = strategy.choose(state, service.rows)
         view = RecommendationView.from_decision(decision)
         picks.append(
@@ -292,14 +315,17 @@ def compare_strategies(
                 p_solve_now=view.p_solve_now,
                 branch=view.branch,
                 elapsed_ms=view.elapsed_ms,
+                explanation=view.explanation,
             )
         )
     groups: dict[str, list[StrategyComparison]] = {}
     for pick in picks:
         groups.setdefault(pick.guess, []).append(pick)
+    results = [pick.to_dict() for pick in sorted(picks, key=lambda p: p.expected_remaining)]
     return {
         "state": service.view(state).to_dict(),
-        "results": [pick.to_dict() for pick in sorted(picks, key=lambda p: p.expected_remaining)],
+        "results": results,
+        "rows": results,
         "distinct_guesses": sorted(groups),
         "groups": [
             {
