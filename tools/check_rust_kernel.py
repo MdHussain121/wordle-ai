@@ -61,7 +61,7 @@ CASES: list[TestCase] = [
         attempts=6,
         subset_answers=None,
         golden_value=1.5,
-        golden_nodes=1,
+        golden_nodes=0,
         description="Minimal Smoke Test (2 answers, 2 guesses, 6 attempts)",
     ),
     TestCase(
@@ -70,7 +70,7 @@ CASES: list[TestCase] = [
         attempts=6,
         subset_answers=12,
         golden_value=2.583333333333333,
-        golden_nodes=2044,
+        golden_nodes=38,
         description="Phase 3 Golden Benchmark (12 answers, 588 allowable guesses, 6 attempts)",
     ),
 ]

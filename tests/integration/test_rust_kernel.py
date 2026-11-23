@@ -89,7 +89,7 @@ def test_rust_generated_policy_verification_and_play(tmp_path: Path) -> None:
     assert payload["schema_version"] == 1
     assert abs(payload["expected_guesses"] - 2.583333333333333) < 1e-6
     assert payload["max_guesses"] == 4
-    assert payload["nodes"] == 2044
+    assert payload["nodes"] == 38
     sidecar_hash = out_sidecar.read_text(encoding="utf-8").strip()
     assert payload["sha256"] == sidecar_hash
     assert payload["sha256"] == policy_digest(payload)

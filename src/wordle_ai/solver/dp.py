@@ -125,8 +125,7 @@ class ExactSolver:
         )
         self.pattern_count = profile.pattern_count
 
-        self._memo: dict[tuple[int, str], float] = {}
-        self._choice: dict[tuple[int, str], int] = {}
+        self._memo: dict[tuple[int, tuple[int, ...]], tuple[float, int]] = {}
         self._nodes = 0
         self._evaluations = 0
         self._started = 0.0
@@ -137,13 +136,14 @@ class ExactSolver:
         """Solve from the given candidate mask (all answers when ``None``)."""
 
         if mask is None:
-            mask = np.ones(len(self.profile.answers), dtype=bool)
-        mask = np.asarray(mask, dtype=bool)
-        if not bool(mask.any()):
-            raise ValueError("cannot solve an empty candidate set")
+            cols = tuple(range(len(self.profile.answers)))
+        else:
+            mask = np.asarray(mask, dtype=bool)
+            if not bool(mask.any()):
+                raise ValueError("cannot solve an empty candidate set")
+            cols = tuple(int(x) for x in np.flatnonzero(mask))
 
         self._memo.clear()
-        self._choice.clear()
         self._nodes = 0
         self._evaluations = 0
         self._started = time.perf_counter()
@@ -151,13 +151,13 @@ class ExactSolver:
             self._started + self.time_budget_s if self.time_budget_s is not None else None
         )
 
-        value = self._value(self.max_attempts, mask)
+        value = self._value(self.max_attempts, cols)
         if not np.isfinite(value):
             raise BudgetExceeded(
-                f"no strategy can guarantee a solve of {int(np.count_nonzero(mask))} "
+                f"no strategy can guarantee a solve of {len(cols)} "
                 f"candidates in {self.max_attempts} guesses"
             )
-        root = self._build_tree(self.max_attempts, mask)
+        root = self._build_tree(self.max_attempts, cols)
         return Solution(
             value=value,
             root_guess=root["guess"],
@@ -171,18 +171,45 @@ class ExactSolver:
         )
 
     # ---- recursion --------------------------------------------------------
-    def _value(self, k: int, mask: np.ndarray) -> float:
-        cols = np.flatnonzero(mask)
-        n = int(cols.size)
+    def _candidate_guesses(self, cols: tuple[int, ...]) -> list[int]:
+        cand_guesses = [int(self.answer_rows[i]) for i in cols if self.answer_rows[i] >= 0]
+        cand_guesses = sorted(set(cand_guesses))
+        if len(cols) > 2 and len(cand_guesses) > 2:
+            def score(g: int) -> tuple[int, int]:
+                row = self.matrix[g]
+                counts: dict[int, int] = {}
+                for c in cols:
+                    cd = int(row[c])
+                    counts[cd] = counts.get(cd, 0) + 1
+                return max(counts.values()), g
+            cand_guesses.sort(key=score)
+        return cand_guesses
+
+    def _value(self, k: int, cols: tuple[int, ...]) -> float:
+        n = len(cols)
         if n == 1:
             return 1.0
         if k <= 1:
             return INF
+        if n == 2:
+            return 1.5
+        if n == 3 and k >= 3:
+            c0, c1, c2 = cols
+            g0 = self.answer_rows[c0]
+            g1 = self.answer_rows[c1]
+            g2 = self.answer_rows[c2]
+            if g0 >= 0 and self.matrix[g0, c1] != self.matrix[g0, c2]:
+                return 5.0 / 3.0
+            if g1 >= 0 and self.matrix[g1, c0] != self.matrix[g1, c2]:
+                return 5.0 / 3.0
+            if g2 >= 0 and self.matrix[g2, c0] != self.matrix[g2, c1]:
+                return 5.0 / 3.0
+            return 2.0
 
-        key = (k, mask_signature(mask))
+        key = (k, cols)
         cached = self._memo.get(key)
         if cached is not None:
-            return cached
+            return cached[0]
         if len(self._memo) >= self.memo_max_entries:
             raise BudgetExceeded(
                 f"exact memo reached {self.memo_max_entries} entries; raise "
@@ -192,11 +219,30 @@ class ExactSolver:
 
         best = INF
         best_guess = -1
-        for guess_index in self._ordered_guesses(cols):
-            cost = self._guess_cost(k, mask, cols, guess_index, best)
+        theoretical_min = 2.0 - 1.0 / n + EPS
+
+        cand_guesses = self._candidate_guesses(cols)
+        for guess_index in cand_guesses:
+            cost = self._guess_cost(k, cols, guess_index, best)
             if cost < best - EPS:
                 best = cost
                 best_guess = guess_index
+                if best <= theoretical_min:
+                    break
+
+        # Universal External Guess Elimination Bound:
+        # Any external guess has cost >= 2.0. If best <= 2.0 + EPS, skip all non-candidates.
+        if self.guess_set == "all" and best > 2.0 + EPS:
+            cand_set = set(cand_guesses)
+            for guess_index in range(len(self.profile.guesses)):
+                if guess_index not in cand_set:
+                    cost = self._guess_cost(k, cols, guess_index, best)
+                    if cost < best - EPS:
+                        best = cost
+                        best_guess = guess_index
+                        if best <= 2.0 + EPS:
+                            break
+
         self._nodes += 1
         if self.progress is not None and self._nodes % 1000 == 0:
             self.progress(
@@ -207,65 +253,59 @@ class ExactSolver:
                     "elapsed_s": time.perf_counter() - self._started,
                 }
             )
-        self._memo[key] = best
-        self._choice[key] = best_guess
+        self._memo[key] = (best, best_guess)
         return best
 
     def _guess_cost(
         self,
         k: int,
-        mask: np.ndarray,
-        cols: np.ndarray,
+        cols: tuple[int, ...],
         guess_index: int,
         incumbent: float,
     ) -> float:
         self._evaluations += 1
-        n = cols.size
-        codes = self.matrix[guess_index][cols]
-        if codes.min() == codes.max():
-            # One bucket: no information, so the guess cannot improve on guessing a
-            # candidate (and would recurse on the same set).
+        n = len(cols)
+        row = self.matrix[guess_index]
+
+        has_match = False
+        buckets: dict[int, list[int]] = {}
+        for c in cols:
+            if self.answer_rows[c] == guess_index:
+                has_match = True
+            code = int(row[c])
+            try:
+                buckets[code].append(c)
+            except KeyError:
+                buckets[code] = [c]
+
+        if len(buckets) == 1:
             return INF
 
-        order, _, starts, ends = _partition(codes)
+        if k == 2 and any(len(members) >= 2 for members in buckets.values()):
+            return INF
+
+        u = n - 1 if has_match else n
+        b_unsolved = len(buckets) - 1 if has_match else len(buckets)
+        lower_bound = 1.0 + (2 * u - b_unsolved) / n
+        if incumbent < INF and lower_bound >= incumbent - EPS:
+            return INF
+
         total = 0.0
-        for start, end in zip(starts.tolist(), ends.tolist()):
-            size = end - start
-            child_cols = cols[order[start:end]]
-            if size == 1 and self.answer_rows[int(child_cols[0])] == guess_index:
-                # The guess itself: this turn solved that game, so it adds no future
-                # guesses. Every other singleton still needs to be guessed.
+        for members in buckets.values():
+            size = len(members)
+            if size == 1 and self.answer_rows[members[0]] == guess_index:
                 continue
             if size == 1:
                 total += 1.0
             else:
-                child = np.zeros_like(mask)
-                child[child_cols] = True
-                value = self._value(k - 1, child)
+                value = self._value(k - 1, tuple(members))
                 if not np.isfinite(value):
                     return INF
                 total += size * value
             if incumbent < INF and 1.0 + total / n >= incumbent - EPS:
                 return INF
+
         return 1.0 + total / n
-
-    def _ordered_guesses(self, cols: np.ndarray) -> list[int]:
-        """Candidates first, then every other guess in index order.
-
-        The order is deterministic and puts the guesses most likely to produce a good
-        incumbent first; it never excludes a guess, so the result is unchanged.
-        """
-
-        if self.guess_set == "candidates":
-            return [int(self.answer_rows[i]) for i in cols if self.answer_rows[i] >= 0]
-        answer_flags = np.zeros(len(self.profile.guesses), dtype=bool)
-        rows = self.answer_rows[cols]
-        answer_flags[rows[rows >= 0]] = True
-        candidates = np.flatnonzero(answer_flags).tolist()
-        if len(candidates) == len(self.profile.guesses):
-            return candidates
-        rest = np.flatnonzero(~answer_flags).tolist()
-        return candidates + rest
 
     def _check_deadline(self) -> None:
         if self._deadline is None:
@@ -280,33 +320,111 @@ class ExactSolver:
             )
 
     # ---- policy tree ------------------------------------------------------
-    def _build_tree(self, k: int, mask: np.ndarray) -> dict:
-        cols = np.flatnonzero(mask)
-        n = int(cols.size)
+    def _cols_to_signature(self, cols: tuple[int, ...] | list[int]) -> str:
+        mask = np.zeros(len(self.profile.answers), dtype=bool)
+        mask[list(cols)] = True
+        return mask_signature(mask)
+
+    def _build_tree(self, k: int, cols: tuple[int, ...] | np.ndarray) -> dict:
+        if isinstance(cols, np.ndarray):
+            cols = tuple(int(x) for x in np.flatnonzero(cols))
+        n = len(cols)
+        state_sig = self._cols_to_signature(cols)
         if n == 1:
-            answer = int(cols[0])
+            answer = cols[0]
             return {
-                "state": mask_signature(mask),
+                "state": state_sig,
                 "guess": self.profile.answers[answer],
                 "value": 1.0,
                 "children": {},
             }
-        key = (k, mask_signature(mask))
-        guess_index = self._choice.get(key, -1)
-        if guess_index < 0:
+        if n == 2:
+            c0, c1 = cols
+            g0 = int(self.answer_rows[c0])
+            code0 = int(self.matrix[g0, c0])
+            code1 = int(self.matrix[g0, c1])
+            children = {}
+            if code0 <= code1:
+                children[str(code0)] = {
+                    "state": self._cols_to_signature((c0,)),
+                    "guess": self.profile.answers[c0],
+                    "value": 1.0,
+                    "children": {},
+                }
+                children[str(code1)] = {
+                    "state": self._cols_to_signature((c1,)),
+                    "guess": self.profile.answers[c1],
+                    "value": 1.0,
+                    "children": {},
+                }
+            else:
+                children[str(code1)] = {
+                    "state": self._cols_to_signature((c1,)),
+                    "guess": self.profile.answers[c1],
+                    "value": 1.0,
+                    "children": {},
+                }
+                children[str(code0)] = {
+                    "state": self._cols_to_signature((c0,)),
+                    "guess": self.profile.answers[c0],
+                    "value": 1.0,
+                    "children": {},
+                }
+            return {
+                "state": state_sig,
+                "guess": self.profile.guesses[g0],
+                "value": 1.5,
+                "children": children,
+            }
+        if n == 3 and k >= 3:
+            c0, c1, c2 = cols
+            g0 = int(self.answer_rows[c0])
+            g1 = int(self.answer_rows[c1])
+            g2 = int(self.answer_rows[c2])
+            if g0 >= 0 and self.matrix[g0, c1] != self.matrix[g0, c2]:
+                guess_index = g0
+                val = 5.0 / 3.0
+            elif g1 >= 0 and self.matrix[g1, c0] != self.matrix[g1, c2]:
+                guess_index = g1
+                val = 5.0 / 3.0
+            elif g2 >= 0 and self.matrix[g2, c0] != self.matrix[g2, c1]:
+                guess_index = g2
+                val = 5.0 / 3.0
+            else:
+                guess_index = g0
+                val = 2.0
+            row = self.matrix[guess_index]
+            buckets: dict[int, list[int]] = {}
+            for c in cols:
+                code = int(row[c])
+                buckets.setdefault(code, []).append(c)
+            children = {}
+            for code in sorted(buckets.keys()):
+                children[str(code)] = self._build_tree(k - 1, tuple(buckets[code]))
+            return {
+                "state": state_sig,
+                "guess": self.profile.guesses[guess_index],
+                "value": val,
+                "children": children,
+            }
+
+        key = (k, cols)
+        entry = self._memo.get(key)
+        if entry is None or entry[1] < 0:
             raise AssertionError("policy requested for a state the DP did not solve")
-        order, sorted_codes, starts, ends = _partition(self.matrix[guess_index][cols])
-        children: dict[str, dict] = {}
-        for start, end in zip(starts.tolist(), ends.tolist()):
-            child_cols = cols[order[start:end]]
-            child_mask = np.zeros_like(mask)
-            child_mask[child_cols] = True
-            code = int(sorted_codes[start])
-            children[str(code)] = self._build_tree(k - 1, child_mask)
+        val, guess_index = entry
+        row = self.matrix[guess_index]
+        buckets = {}
+        for c in cols:
+            code = int(row[c])
+            buckets.setdefault(code, []).append(c)
+        children = {}
+        for code in sorted(buckets.keys()):
+            children[str(code)] = self._build_tree(k - 1, tuple(buckets[code]))
         return {
-            "state": mask_signature(mask),
+            "state": state_sig,
             "guess": self.profile.guesses[guess_index],
-            "value": float(self._memo[key]),
+            "value": float(val),
             "children": children,
         }
 
