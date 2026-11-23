@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "wordle-ai"
+dynamic = ["version"]
+description = "Wordle-solving AI: measured solver, benchmark harness and play assistant"
+requires-python = ">=3.12"
+dependencies = [
+  "numpy>=1.26",
+  "pydantic>=2.6",
+  "typer>=0.12",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "hypothesis>=6.100",
+  "httpx>=0.27",
+]
+prior = [
+  "wordfreq>=3.1",
+]
+http = [
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+]
+# Reserved: Phase 6 is blocked on Phase 3's classic exact policy, so no ML dependency
+# is admitted yet.
+ml = []
+# Reserved: the measured budgets do not justify a Rust kernel (see the roadmap).
+rust = []
+
+[project.scripts]
+wordle-ai = "wordle_ai.cli.main:app"
+
+[tool.hatch.version]
+path = "src/wordle_ai/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/wordle_ai"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+addopts = "-ra"
+filterwarnings = ["error::DeprecationWarning:wordle_ai.*"]

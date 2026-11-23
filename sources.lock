@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "sources": {
+    "scowl": {
+      "kind": "zip",
+      "version": "2020.12.07",
+      "url": "https://downloads.sourceforge.net/project/wordlist/SCOWL/2020.12.07/scowl-2020.12.07.zip",
+      "sha256": "dc3435e1cb56f3394aea91b5d2ab5d10d80c98bc7dd88c3fccb7348f6ab913a0",
+      "archive": "data/raw/scowl-2020.12.07.zip",
+      "extract_to": "data/raw/scowl",
+      "license": "SCOWL permissive (MIT/X11-style), notice required",
+      "license_file": "data/raw/scowl/Copyright"
+    },
+    "enable": {
+      "kind": "text",
+      "version": "ENABLE2K",
+      "url": "https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt",
+      "sha256": "3f16130220645692ed49c7134e24a18504c2ca55b3c012f7290e3e77c63b1a89",
+      "path": "data/raw/enable1.txt",
+      "license": "Public domain (ENABLE 2K)",
+      "license_file": null
+    }
+  },
+  "user_sources": {
+    "classic": {
+      "version": "user-supplied",
+      "license": "unverified; never redistributed",
+      "answers_path": "data/user/classic_answers.txt",
+      "guesses_path": "data/user/classic_guesses.txt",
+      "provenance": "Original Wordle answer and allowed-guess lists as published by the user; no open licence, therefore never bundled."
+    }
+  }
+}

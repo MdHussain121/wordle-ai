@@ -1,0 +1,75 @@
+[general]
+data_dir = "data"
+cache_dir = "data/processed/cache"
+deterministic = true
+
+[profile]
+language = "en"
+length = 5
+alphabet = "abcdefghijklmnopqrstuvwxyz"
+
+[rules]
+mode = "normal"            # normal | hard | superhard
+max_attempts = 6
+
+[prior]
+kind = "uniform"           # uniform | zipf | empirical
+beta = 0.0
+empirical_path = ""
+
+[feedback]
+table_max_bytes = 268435456   # 256 MiB
+build_policy = "auto"         # auto | full | none | hybrid
+lru_rows = 2048
+
+[strategy]
+default = "hybrid.balanced"
+top_n_lookahead = 12
+lookahead_max_candidates = 50
+rollout_max_candidates = 25
+pairwise_limit = 20000000
+tie_epsilon = 1e-12
+
+[exact]
+max_answers = 5000
+max_guesses = 20000
+memo_max_entries = 2000000
+time_budget_s = 86400
+parallel_root = true
+
+[bench]
+answers = "all"
+seed = 20261119
+workers = 16
+bootstrap_samples = 10000
+
+[ml]
+enabled = false
+model_path = ""
+max_decision_ms = 5.0
+min_avg_improvement = 0.02
+
+# Profile families. A concrete profile is "<family>.<language>.<length>",
+# e.g. strict.en.5. `answer_policy = "same"` means the open lexicon's ASCII-alpha
+# word set is both the guess set and the answer set (square grammar).
+[profiles.strict]
+scowl_size = 50
+include_enable = false
+answer_policy = "same"
+
+[profiles.extended]
+scowl_size = 80
+include_enable = true
+answer_policy = "same"
+
+[profiles.full]
+scowl_size = 95
+include_enable = true
+answer_policy = "same"
+
+[profiles.classic]
+scowl_size = 0
+include_enable = false
+answer_policy = "file"
+answers_path = "data/user/classic_answers.txt"
+guesses_path = "data/user/classic_guesses.txt"

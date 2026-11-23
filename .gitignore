@@ -1,0 +1,16 @@
+# Build output and fetched/derived word data are never committed.
+data/
+policies/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# Local tooling
+.DS_Store
+Thumbs.db

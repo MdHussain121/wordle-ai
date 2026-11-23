@@ -1,0 +1,26 @@
+[package]
+name = "wordle_core"
+version = "0.1.0"
+edition = "2021"
+description = "Optional Rust DP kernel for the Wordle exact solver (Python remains the oracle)."
+license = "MIT"
+
+[[bin]]
+name = "wordle_core"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+rayon = "1.10"
+dashmap = "6.1"
+
+
+
