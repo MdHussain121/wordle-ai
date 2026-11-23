@@ -25,6 +25,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 const INF: f64 = f64::INFINITY;
 
 struct Args {
@@ -42,6 +45,7 @@ struct Args {
     seed_guess: Option<String>,
     checkpoint_dir: Option<PathBuf>,
     pause_file: Option<PathBuf>,
+    prune_bounds: bool,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -59,9 +63,33 @@ fn parse_args() -> Result<Args, String> {
     let mut seed_guess = None;
     let mut checkpoint_dir = None;
     let mut pause_file = None;
+    let mut prune_bounds = false;
 
-    let mut it = env::args().skip(1);
+    let mut it = env::args().skip(1).peekable();
     while let Some(flag) = it.next() {
+        match flag.as_str() {
+            "--prune-bounds" | "--fast" => {
+                if let Some(next) = it.peek() {
+                    if next == "true" || next == "1" {
+                        prune_bounds = true;
+                        it.next();
+                    } else if next == "false" || next == "0" {
+                        prune_bounds = false;
+                        it.next();
+                    } else {
+                        prune_bounds = true;
+                    }
+                } else {
+                    prune_bounds = true;
+                }
+                continue;
+            }
+            "--strict-oracle" => {
+                prune_bounds = false;
+                continue;
+            }
+            _ => {}
+        }
         let value = it.next().ok_or_else(|| format!("{flag} needs a value"))?;
         match flag.as_str() {
             "--table" => table = Some(PathBuf::from(value)),
@@ -96,6 +124,7 @@ fn parse_args() -> Result<Args, String> {
         seed_guess,
         checkpoint_dir,
         pause_file,
+        prune_bounds,
     })
 }
 
@@ -212,6 +241,7 @@ struct Solver<'a> {
     checkpoint_dir: Option<PathBuf>,
     pause_file: Option<PathBuf>,
     cached_root_tree: Mutex<Option<TreeNode>>,
+    prune_bounds: bool,
 }
 
 impl<'a> Solver<'a> {
@@ -235,10 +265,31 @@ impl<'a> Solver<'a> {
         let (best, best_guess) = if self.threads_count > 1 && n >= 35 {
             let ordered = self.ordered_guesses(cands);
             // Parallel candidate guess evaluation across Rayon worker threads
-            let global_best = AtomicU64::new(f64::to_bits(INF));
-            let best_pair = Mutex::new((INF, None));
+            let mut init_best = INF;
+            let mut init_guess = None;
+            if let Some(&first_guess) = ordered.first() {
+                let cost = self.guess_cost(k, n, cands, first_guess, INF);
+                if cost < INF {
+                    init_best = cost;
+                    init_guess = Some(first_guess);
+                }
+            }
+            let global_best = AtomicU64::new(f64::to_bits(init_best));
+            let best_pair = Mutex::new((init_best, init_guess));
 
-            ordered.par_iter().for_each(|&guess| {
+            let remaining = if init_guess.is_some() {
+                &ordered[1..]
+            } else {
+                &ordered[..]
+            };
+
+            remaining.par_iter().for_each(|&guess| {
+                if self.prune_bounds {
+                    let cur_best = f64::from_bits(global_best.load(Ordering::Relaxed));
+                    if cur_best <= 2.0 - 1.0 / n as f64 + 1e-12 {
+                        return;
+                    }
+                }
                 let cost = self.guess_cost_atomic(k, n, cands, guess, &global_best);
                 if cost < INF {
                     let cur_best = f64::from_bits(global_best.load(Ordering::Relaxed));
@@ -287,19 +338,28 @@ impl<'a> Solver<'a> {
 
             let mut best = INF;
             let mut best_guess = None;
+            let theoretical_min = 2.0 - 1.0 / n as f64 + 1e-12;
             for &guess in &candidates {
                 let cost = self.guess_cost(k, n, cands, guess, best);
                 if cost < best - 1e-12 {
                     best = cost;
                     best_guess = Some(guess);
+                    if self.prune_bounds && best <= theoretical_min {
+                        break;
+                    }
                 }
             }
-            for guess in 0..self.n_guesses {
-                if (bitset[guess / 64] & (1u64 << (guess % 64))) == 0 {
-                    let cost = self.guess_cost(k, n, cands, guess, best);
-                    if cost < best - 1e-12 {
-                        best = cost;
-                        best_guess = Some(guess);
+            if !self.prune_bounds || best > theoretical_min {
+                for guess in 0..self.n_guesses {
+                    if (bitset[guess / 64] & (1u64 << (guess % 64))) == 0 {
+                        let cost = self.guess_cost(k, n, cands, guess, best);
+                        if cost < best - 1e-12 {
+                            best = cost;
+                            best_guess = Some(guess);
+                            if self.prune_bounds && best <= theoretical_min {
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -323,29 +383,72 @@ impl<'a> Solver<'a> {
         self.evaluations.fetch_add(1, Ordering::Relaxed);
         let row = &self.table[guess * self.n_answers..(guess + 1) * self.n_answers];
 
-        // Bucket the candidate columns by feedback code, preserving their order.
-        let mut counts = [0u32; 243];
+        // 1. Single-pass code caching & count pass
+        let mut codes_stack = [0u8; 256];
+        let mut codes_heap;
+        let codes: &mut [u8] = if n <= 256 {
+            &mut codes_stack[..n]
+        } else {
+            codes_heap = vec![0u8; n];
+            &mut codes_heap[..]
+        };
+
+        let mut counts = [0u16; 243];
         let mut min_code = u8::MAX;
         let mut max_code = 0u8;
-        for &answer in cands {
+        let mut has_match = false;
+        let guess_i64 = guess as i64;
+        for (i, &answer) in cands.iter().enumerate() {
             let code = row[answer as usize];
+            codes[i] = code;
             counts[code as usize] += 1;
             min_code = min_code.min(code);
             max_code = max_code.max(code);
+            if self.answer_rows[answer as usize] == guess_i64 {
+                has_match = true;
+            }
         }
         if min_code == max_code {
             return INF;
         }
 
-        // CSR bucketing: one stable pass into contiguous per-code slices.
-        let mut starts = [0usize; 244];
         let min_c = min_code as usize;
         let max_c = max_code as usize;
+
+        if self.prune_bounds {
+            // Algorithmic Branch-and-Bound Pruning:
+            // 1. At k = 2, if any bucket count >= 2, cannot solve in 1 remaining attempt
+            if k == 2 {
+                for code in min_c..=max_c {
+                    if counts[code] >= 2 {
+                        return INF;
+                    }
+                }
+            }
+
+            // 2. Universal bucket lower bound (B-bound):
+            // Unsolved candidate count U and non-empty bucket count B.
+            // Lower bound = 1 + (2U - B) / n. If lower bound >= incumbent - 1e-12, prune immediately.
+            let mut b = 0u32;
+            for code in min_c..=max_c {
+                if counts[code] > 0 {
+                    b += 1;
+                }
+            }
+            let u = if has_match { (n - 1) as u32 } else { n as u32 };
+            let lower_bound = 1.0 + (2 * u - b) as f64 / n as f64;
+            if incumbent.is_finite() && lower_bound >= incumbent - 1e-12 {
+                return INF;
+            }
+        }
+
+        // CSR bucketing: compact starts & cursor from [usize; 244] to [u16; 244]
+        let mut starts = [0u16; 244];
         for code in min_c..=max_c {
-            starts[code + 1] = starts[code] + counts[code] as usize;
+            starts[code + 1] = starts[code] + counts[code];
         }
         for code in (max_c + 1)..243 {
-            starts[code + 1] = n;
+            starts[code + 1] = n as u16;
         }
         let mut cursor = starts;
         let mut stack_order = [0u16; 256];
@@ -356,23 +459,24 @@ impl<'a> Solver<'a> {
             heap_order = vec![0u16; n];
             &mut heap_order[..]
         };
-        for &answer in cands {
-            let code = row[answer as usize] as usize;
-            order[cursor[code]] = answer;
+        // Populate order using cached codes (no secondary table read)
+        for (i, &answer) in cands.iter().enumerate() {
+            let code = codes[i] as usize;
+            order[cursor[code] as usize] = answer;
             cursor[code] += 1;
         }
 
         let mut total = 0.0f64;
         for code in min_c..=max_c {
-            let start = starts[code];
-            let end = starts[code + 1];
+            let start = starts[code] as usize;
+            let end = starts[code + 1] as usize;
             let size = end - start;
             if size == 0 {
                 continue;
             }
             if size == 1 {
                 let answer = order[start];
-                if self.answer_rows[answer as usize] == guess as i64 {
+                if self.answer_rows[answer as usize] == guess_i64 {
                     continue;
                 }
                 total += 1.0;
@@ -401,27 +505,66 @@ impl<'a> Solver<'a> {
         self.evaluations.fetch_add(1, Ordering::Relaxed);
         let row = &self.table[guess * self.n_answers..(guess + 1) * self.n_answers];
 
-        let mut counts = [0u32; 243];
+        let mut codes_stack = [0u8; 256];
+        let mut codes_heap;
+        let codes: &mut [u8] = if n <= 256 {
+            &mut codes_stack[..n]
+        } else {
+            codes_heap = vec![0u8; n];
+            &mut codes_heap[..]
+        };
+
+        let mut counts = [0u16; 243];
         let mut min_code = u8::MAX;
         let mut max_code = 0u8;
-        for &answer in cands {
+        let mut has_match = false;
+        let guess_i64 = guess as i64;
+        for (i, &answer) in cands.iter().enumerate() {
             let code = row[answer as usize];
+            codes[i] = code;
             counts[code as usize] += 1;
             min_code = min_code.min(code);
             max_code = max_code.max(code);
+            if self.answer_rows[answer as usize] == guess_i64 {
+                has_match = true;
+            }
         }
         if min_code == max_code {
             return INF;
         }
 
-        let mut starts = [0usize; 244];
         let min_c = min_code as usize;
         let max_c = max_code as usize;
+
+        if self.prune_bounds {
+            if k == 2 {
+                for code in min_c..=max_c {
+                    if counts[code] >= 2 {
+                        return INF;
+                    }
+                }
+            }
+
+            let mut b = 0u32;
+            for code in min_c..=max_c {
+                if counts[code] > 0 {
+                    b += 1;
+                }
+            }
+            let u = if has_match { (n - 1) as u32 } else { n as u32 };
+            let lower_bound = 1.0 + (2 * u - b) as f64 / n as f64;
+            let incumbent = f64::from_bits(global_best.load(Ordering::Relaxed));
+            if incumbent.is_finite() && lower_bound >= incumbent - 1e-12 {
+                return INF;
+            }
+        }
+
+        let mut starts = [0u16; 244];
         for code in min_c..=max_c {
-            starts[code + 1] = starts[code] + counts[code] as usize;
+            starts[code + 1] = starts[code] + counts[code];
         }
         for code in (max_c + 1)..243 {
-            starts[code + 1] = n;
+            starts[code + 1] = n as u16;
         }
         let mut cursor = starts;
         let mut stack_order = [0u16; 256];
@@ -432,23 +575,23 @@ impl<'a> Solver<'a> {
             heap_order = vec![0u16; n];
             &mut heap_order[..]
         };
-        for &answer in cands {
-            let code = row[answer as usize] as usize;
-            order[cursor[code]] = answer;
+        for (i, &answer) in cands.iter().enumerate() {
+            let code = codes[i] as usize;
+            order[cursor[code] as usize] = answer;
             cursor[code] += 1;
         }
 
         let mut total = 0.0f64;
         for code in min_c..=max_c {
-            let start = starts[code];
-            let end = starts[code + 1];
+            let start = starts[code] as usize;
+            let end = starts[code + 1] as usize;
             let size = end - start;
             if size == 0 {
                 continue;
             }
             if size == 1 {
                 let answer = order[start];
-                if self.answer_rows[answer as usize] == guess as i64 {
+                if self.answer_rows[answer as usize] == guess_i64 {
                     continue;
                 }
                 total += 1.0;
@@ -760,6 +903,9 @@ impl<'a> Solver<'a> {
                 if cost < best - 1e-12 {
                     best = cost;
                     best_guess = Some(guess);
+                    if self.prune_bounds && best <= 2.0 - 1.0 / n as f64 + 1e-12 {
+                        break;
+                    }
                 }
             }
             self.nodes.fetch_add(1, Ordering::Relaxed);
@@ -793,14 +939,38 @@ impl<'a> Solver<'a> {
                 (INF, None)
             };
 
+            let ordered = self.ordered_guesses(cands);
+
+            let (initial_cost, initial_guess) = if initial_cost < INF {
+                (initial_cost, initial_guess)
+            } else if let Some(&first_guess) = ordered.first() {
+                let cost = self.guess_cost(self.attempts, n, cands, first_guess, INF);
+                if cost < INF {
+                    eprintln!(
+                        "wordle_core: initial candidate '{}' established root incumbent: {:.6}",
+                        self.guesses[first_guess], cost
+                    );
+                    (cost, Some(first_guess))
+                } else {
+                    (INF, None)
+                }
+            } else {
+                (INF, None)
+            };
+
             // Thread-safe synchronized incumbent pairing: prevents data race between cost and guess index
             let root_incumbent = Mutex::new((initial_cost, initial_guess));
             let global_best = AtomicU64::new(f64::to_bits(initial_cost));
 
-            let ordered = self.ordered_guesses(cands);
             ordered.par_iter().for_each(|&guess| {
                 if Some(guess) == initial_guess {
                     return;
+                }
+                if self.prune_bounds {
+                    let cur_best = f64::from_bits(global_best.load(Ordering::Relaxed));
+                    if cur_best <= 2.0 - 1.0 / n as f64 + 1e-12 {
+                        return;
+                    }
                 }
                 let cost = self.guess_cost_atomic(self.attempts, n, cands, guess, &global_best);
                 if cost < INF {
@@ -809,6 +979,7 @@ impl<'a> Solver<'a> {
                         let mut inc = root_incumbent.lock().unwrap();
                         if cost < inc.0 - 1e-12 {
                             *inc = (cost, Some(guess));
+                            *self.cached_root_tree.lock().unwrap() = None;
                             let mut cur = global_best.load(Ordering::Relaxed);
                             while f64::from_bits(cur) > cost {
                                 match global_best.compare_exchange_weak(
@@ -919,7 +1090,11 @@ impl<'a> Solver<'a> {
         profile_sha256: &str,
     ) -> Result<(), String> {
         let tree_node = if let Some(ref cached) = *self.cached_root_tree.lock().unwrap() {
-            cached.clone()
+            if (cached.value - value).abs() < 1e-9 {
+                cached.clone()
+            } else {
+                self.build_tree(self.attempts, cands)
+            }
         } else {
             self.build_tree(self.attempts, cands)
         };
@@ -1057,6 +1232,7 @@ fn run() -> Result<(), String> {
         checkpoint_dir: args.checkpoint_dir,
         pause_file: args.pause_file,
         cached_root_tree: Mutex::new(None),
+        prune_bounds: args.prune_bounds,
     };
 
     let cands: Vec<u16> = (0..n_answers as u16).collect();
