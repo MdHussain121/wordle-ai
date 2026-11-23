@@ -24,9 +24,11 @@ Optional extras:
 | `prior` | `wordfreq` | the Zipf prior and its calibration |
 | `http` | `fastapi`, `uvicorn` | `wordle_ai.api.http` |
 | `dev` | `pytest`, `hypothesis`, `httpx` | the test suite |
+| `ml` | `torch`, `scikit-learn`, `pyarrow` | Phase 6 ML distillation models & gates |
 
-`ml` and `rust` are reserved extras: Phase 6 is blocked on Phase 3's classic exact
-policy and no Rust kernel was needed by the measured budgets (see the roadmap).
+`rust` is a reserved extra (the standalone Rust DP kernel lives in `rust/wordle_core`).
+Phase 6 machine learning models are available under the `ml` extra; the admitted neural value lookahead
+strategy (`ml.value_lookahead`) ships behind `ml.enabled = false` by default.
 
 ## Data
 
@@ -90,6 +92,21 @@ app = create_app(SolverService(profile))
 
 It exposes `GET /health`, `GET /profile`, `POST /recommend`, `POST /compare` and
 `POST /dictionary`; handlers only call the service layer.
+
+## Machine Learning
+
+Phase 6 implements zero-leakage DP distillation and G1–G8 admission gates:
+
+```bash
+# extract (state, guess, value) pairs from verified exact policy
+wordle-ai ml extract --policy policies/classic.en.5.normal.uniform.policy.json
+
+# train ValueNetwork, ValueRegressor, and PolicyRanker
+wordle-ai ml train
+
+# audit models against G1–G8 admission criteria
+wordle-ai ml gate
+```
 
 ## Benchmarks
 

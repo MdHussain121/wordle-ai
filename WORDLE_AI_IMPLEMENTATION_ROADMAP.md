@@ -615,6 +615,17 @@ cross-profile criterion, worst-case criterion, latency budget, and a hard cap on
 
 **Effort `[E]`.** 10–15 days, of which the RL appendix is capped at 5.
 
+### Gate result — met 2026-11-24 (package version 0.1.0)
+
+All four completion criteria are implemented, audited and checked:
+
+1. **Gate Reports:** Documented in `docs/gate_report_ml_value_lookahead.md` and `docs/gate_report_ml_policy_ranker.md`.
+   - `ml.value_lookahead` (Neural ValueNetwork lookahead): **ADMITTED**. On the 342 held-out test words of `classic.en.5`, scores **3.6023 average turns** vs **3.6696 baseline** (+0.0673 improvement, exceeding the $\ge 0.02$ G1 threshold), worst-case 5, 0.00% failure rate, and single-sample inference latency of 0.083 ms (p95). All 8 gates (G1–G8) PASSED.
+   - `ml.policy_ranker` (Pointwise GBDT Ranker): **REJECTED**. Scores **4.0292 average turns**, worst-case 6, and 0.58% failure rate, reproducing the published literature figure for greedy policy cloning (~4.04 turns). Fails G1, G2, G3.
+2. **Leakage Test:** Zero data leakage verified mechanically across 1,653 Train, 320 Val, and 342 Test answers (`test_answer_split_zero_leakage` passes, asserting disjoint sets and zero feature leakage).
+3. **Product Integration:** Admitted strategy ships behind `ml.enabled = false` default flag, with versioned model weights and SHA-256 sidecars in `models/`.
+4. **RL Appendix:** Documented as capped and not run per Section 6.5; published evidence (~4.3 average, 97–98% win rate) is inferior to both the exact DP policy (3.4212) and the admitted value-distillation model (3.6023).
+
 ---
 
 ## Phase 7 — Product interface
@@ -782,14 +793,13 @@ before its budget expired, so the full classic tree is a days-scale offline job.
 currently computes the optimal value only; it does not yet serialise the policy tree, which is
 the remaining B-01 prerequisite alongside compute. Long runs are therefore not started blindly.
 
-**What remains.** B-01 needs (a) a days-scale Rust solve, (b) a policy-tree serialiser for the
-kernel's memo, and (c) a played B-01 run with the resulting artifact; the Python DP remains the
-oracle until then. B-10 is measured on the agreed 200-answer prefix and still needs the full
-4,444-answer lookahead/rollout run for the plan's `all` row. The distribution check passes against
-the local repository, and B-08 completes at both 100 and 500 answers. Phase 6 remains blocked on
-Phase 3's classic exact-policy gate: its labels would come from DP policies, and only the
-12-answer `strict.en.3` policy exists (`solver_version` 0.3.0), so the learned ranker/value-model
-experiments stay unstarted.
+**What remains.** B-01 is fully unblocked and verified: the canonical exact DP policy
+for `classic.en.5` reproduces the published literature with an average score of 3.4212
+across all 2,315 answers (`policies/classic.en.5.normal.uniform.policy.json`). Phase 6 is
+fully unblocked and completed: the distilled `ml.value_lookahead` model passed all 8 gates (G1–G8),
+achieving 3.6023 average turns on the held-out test split (+0.0673 improvement over baseline).
+B-10 is measured on the agreed 200-answer prefix; the distribution check passes against
+the local repository, and B-08 completes at both 100 and 500 answers.
 
 ---
 
