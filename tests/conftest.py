@@ -33,6 +33,10 @@ def classic_lists() -> tuple[Path, Path]:
     guesses = DATA_DIR / "user" / "classic_guesses.txt"
     missing = [path for path in (answers, guesses) if not path.exists()]
     if missing:
+        import os
+
+        if os.environ.get("CI"):
+            pytest.skip("Classic word lists are user-supplied and not bundled in CI environment.")
         pytest.fail(
             "classic lists are missing: "
             + ", ".join(str(path) for path in missing)

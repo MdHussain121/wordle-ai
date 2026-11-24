@@ -28,6 +28,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install --extra-index-url https://download.pytorch.org/whl/cpu -e ".[dev,http,prior,ml]"
 
+      - name: Fetch open lexicons
+        run: |
+          wordle-ai lex fetch --source scowl --dest data/raw
+          wordle-ai lex fetch --source enable --dest data/raw
+
       - name: Run unit tests
         run: |
           pytest tests/unit

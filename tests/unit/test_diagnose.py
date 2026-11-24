@@ -107,6 +107,8 @@ def test_profile_mismatch_is_named(profile_dir, tmp_path):
 
 def test_tampered_policy_is_reported_as_stale(tmp_path):
     source = Path("data/exact/subset12.policy.json")
+    if not source.exists():
+        source = Path("policies/classic.en.5.normal.uniform.policy.json")
     target = tmp_path / "tampered.policy.json"
     payload = json.loads(source.read_text(encoding="utf-8"))
     payload["tree"]["guess"] = "zzz"
