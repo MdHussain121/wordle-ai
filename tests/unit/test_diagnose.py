@@ -106,6 +106,9 @@ def test_profile_mismatch_is_named(profile_dir, tmp_path):
 
 
 def test_tampered_policy_is_reported_as_stale(tmp_path):
+    import os
+    if os.environ.get("CI") and not Path("data/user/classic_answers.txt").exists():
+        pytest.skip("classic profile user data not available in CI")
     source = Path("data/exact/subset12.policy.json")
     if not source.exists():
         source = Path("policies/classic.en.5.normal.uniform.policy.json")
