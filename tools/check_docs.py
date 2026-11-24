@@ -15,8 +15,8 @@ import glob
 import re
 import sys
 
-DOCS = sorted(glob.glob("WORDLE_AI_*.md"))
-REF = re.compile(r"WORDLE_AI_[A-Z_]+\.md")
+DOCS = sorted(glob.glob("docs/*.md") + [f for f in glob.glob("*.md") if f != "AGENTS.md"])
+REF = re.compile(r"(?:docs/)?[A-Za-z0-9_]+\.md")
 
 
 def find_code_pipe_rows(lines: list[str]) -> list[tuple[int, str]]:

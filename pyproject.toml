@@ -9,7 +9,7 @@ description = "Wordle-solving AI: measured solver, benchmark harness and play as
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-  {name = "Wordle AI Contributors"}
+  {name = "Mohammad Hussian", email = "mohammadhussain10372@gmail.com"}
 ]
 keywords = ["wordle", "ai", "solver", "dynamic-programming", "information-theory", "benchmark"]
 classifiers = [

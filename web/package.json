@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Interactive Web Studio and AI Copilot for Wordle AI",
+  "author": "Mohammad Hussian <mohammadhussain10372@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
