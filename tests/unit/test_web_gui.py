@@ -113,3 +113,41 @@ def test_api_ml_summary_endpoint(client):
     assert "profile_id" in data
     assert "gate_reports" in data
     assert "models_present" in data
+
+
+def test_api_recommend_resilient_to_dp_tree_departure_and_limits(client, strict_profiles):
+    profile = strict_profiles["strict.en.2"]
+    # Contradictory feedback that leaves 0 candidates
+    res_zero = client.post(
+        "/api/recommend",
+        json={
+            "history": [
+                {"guess": profile.answers[0], "feedback": "22"},
+                {"guess": profile.answers[0], "feedback": "00"},
+            ]
+        },
+    )
+    assert res_zero.status_code == 200
+    data_zero = res_zero.json()
+    assert data_zero["recommendation"] is None
+    assert "error" in data_zero
+
+    # Attempts exhausted
+    turns_six = [{"guess": profile.answers[0], "feedback": "10"} for _ in range(6)]
+    res_exhausted = client.post("/api/recommend", json={"history": turns_six})
+    assert res_exhausted.status_code == 200
+    data_exhausted = res_exhausted.json()
+    assert data_exhausted.get("game_over") is True
+
+
+def test_api_compare_resilient_to_dp_tree_departure(client, strict_profiles):
+    profile = strict_profiles["strict.en.2"]
+    # Provide history that causes DP tree departure for exact
+    history = [{"guess": profile.answers[0], "feedback": "10"}]
+    res = client.post(
+        "/api/compare",
+        json={"history": history, "strategies": ["entropy", "first_candidate"]},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data["rows"]) == 2

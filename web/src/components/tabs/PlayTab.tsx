@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Card } from '@astryxdesign/core/Card'
 import { Button } from '@astryxdesign/core/Button'
 import { Heading } from '@astryxdesign/core/Heading'
@@ -19,12 +19,16 @@ interface PlayTabProps {
   letters: string[]
   feedbacks: TileFeedback[][]
   committed: boolean[]
+  selectedCol: number
+  onSelectCol: (col: number) => void
   selectedStrategy: string
   strategyOptions: StrategyOption[]
   recommendation: RecommendationData | null
   gameState: GameViewState | null
   isSolved: boolean
   isThinking: boolean
+  isGameOver?: boolean
+  errorMessage?: string | null
   onLetterInput: (char: string) => void
   onBackspace: () => void
   onCommitRow: () => void
@@ -43,12 +47,16 @@ export const PlayTab: React.FC<PlayTabProps> = ({
   letters,
   feedbacks,
   committed,
+  selectedCol,
+  onSelectCol,
   selectedStrategy,
   strategyOptions,
   recommendation,
   gameState,
   isSolved,
   isThinking,
+  isGameOver,
+  errorMessage,
   onLetterInput,
   onBackspace,
   onCommitRow,
@@ -61,7 +69,6 @@ export const PlayTab: React.FC<PlayTabProps> = ({
   onSelectCandidate,
   getKeyColorClass,
 }) => {
-  const [selectedCol, setSelectedCol] = useState<number>(0)
 
   return (
     <div
@@ -103,7 +110,7 @@ export const PlayTab: React.FC<PlayTabProps> = ({
           feedbacks={feedbacks}
           currentRow={currentRow}
           selectedCol={selectedCol}
-          onSelectCol={col => setSelectedCol(col)}
+          onSelectCol={onSelectCol}
           onCycleTileFeedback={onCycleTileFeedback}
           onSetFeedback={onSetFeedbackForSelected}
           onSetAllFeedback={onSetAllFeedbackForCurrent}
@@ -117,7 +124,7 @@ export const PlayTab: React.FC<PlayTabProps> = ({
             size="md"
             icon={<Check size={16} />}
             onClick={onCommitRow}
-            isDisabled={currentRow >= 6 || letters[currentRow]?.length !== 5}
+            isDisabled={currentRow >= 6 || letters[currentRow]?.length !== 5 || isSolved || isGameOver}
           />
           <Button
             label="Backspace"
@@ -125,7 +132,7 @@ export const PlayTab: React.FC<PlayTabProps> = ({
             size="md"
             icon={<X size={16} />}
             onClick={onBackspace}
-            isDisabled={currentRow >= 6 || committed[currentRow]}
+            isDisabled={currentRow >= 6 || committed[currentRow] || isSolved || isGameOver}
           />
         </div>
 
@@ -147,7 +154,9 @@ export const PlayTab: React.FC<PlayTabProps> = ({
         gameState={gameState}
         isSolved={isSolved}
         isThinking={isThinking}
-        canApplyGuess={currentRow < 6 && !committed[currentRow]}
+        isGameOver={isGameOver}
+        errorMessage={errorMessage}
+        canApplyGuess={currentRow < 6 && !committed[currentRow] && !isSolved && !isGameOver}
         onApplyGuess={onApplyGuess}
         onSelectCandidate={onSelectCandidate}
       />

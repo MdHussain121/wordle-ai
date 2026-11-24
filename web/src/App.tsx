@@ -40,6 +40,7 @@ export default function App() {
 
   // Board State
   const [currentRow, setCurrentRow] = useState<number>(0)
+  const [selectedCol, setSelectedCol] = useState<number>(0)
   const [letters, setLetters] = useState<string[]>(['', '', '', '', '', ''])
   const [feedbacks, setFeedbacks] = useState<TileFeedback[][]>(
     Array.from({ length: 6 }, () => ['B', 'B', 'B', 'B', 'B'])
@@ -50,6 +51,7 @@ export default function App() {
   const [selectedStrategy, setSelectedStrategy] = useState<string>('exact')
   const [recommendation, setRecommendation] = useState<RecommendationData | null>(null)
   const [gameState, setGameState] = useState<GameViewState | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   // Loading & status states (unified state to prevent boolean explosion)
   const [loading, setLoading] = useState({
     copilot: false,
@@ -93,14 +95,20 @@ export default function App() {
   // Fetch AI Recommendation
   const handleFetchRecommendation = useCallback(async () => {
     setLoading(prev => ({ ...prev, copilot: true }))
+    setErrorMessage(null)
     try {
       const history = getHistoryPayload()
       const data = await api.fetchRecommendation(history, selectedStrategy)
       setIsSolved(Boolean(data.solved))
       setRecommendation(data.recommendation)
       setGameState(data.state)
-    } catch (err) {
-      console.error('Failed to fetch recommendation:', err)
+      if (data.error) {
+        setErrorMessage(data.error)
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error communicating with solver service.'
+      console.error('Failed to fetch recommendation:', msg)
+      setErrorMessage(msg)
     } finally {
       setLoading(prev => ({ ...prev, copilot: false }))
     }
@@ -113,22 +121,26 @@ export default function App() {
 
   // Letter input handling
   const handleLetterInput = (char: string) => {
-    if (currentRow >= 6 || committed[currentRow]) return
+    if (currentRow >= 6 || committed[currentRow] || isSolved) return
     const current = letters[currentRow]
     if (current.length < 5) {
       const updated = [...letters]
       updated[currentRow] = current + char
       setLetters(updated)
+      setSelectedCol(Math.min(4, current.length))
+      setErrorMessage(null)
     }
   }
 
   const handleBackspace = () => {
-    if (currentRow >= 6 || committed[currentRow]) return
+    if (currentRow >= 6 || committed[currentRow] || isSolved) return
     const current = letters[currentRow]
     if (current.length > 0) {
       const updated = [...letters]
       updated[currentRow] = current.slice(0, -1)
       setLetters(updated)
+      setSelectedCol(Math.max(0, current.length - 2))
+      setErrorMessage(null)
     }
   }
 
@@ -143,6 +155,7 @@ export default function App() {
       rIdx === r ? rowFeed.map((fb, cIdx) => (cIdx === c ? nextFeedback : fb)) : rowFeed
     )
     setFeedbacks(updated)
+    setErrorMessage(null)
   }
 
   // Set explicit feedback for selected column on current row
@@ -151,10 +164,11 @@ export default function App() {
     setFeedbacks(prev =>
       prev.map((rowFeed, rIdx) =>
         rIdx === currentRow
-          ? rowFeed.map((curr, cIdx) => (cIdx === 0 ? fb : curr))
+          ? rowFeed.map((curr, cIdx) => (cIdx === selectedCol ? fb : curr))
           : rowFeed
       )
     )
+    setErrorMessage(null)
   }
 
   // Set all feedback for current row
@@ -165,11 +179,12 @@ export default function App() {
         rIdx === currentRow ? Array.from({ length: 5 }, () => fb) : rowFeed
       )
     )
+    setErrorMessage(null)
   }
 
   // Commit Row
   const handleCommitRow = () => {
-    if (currentRow >= 6) return
+    if (currentRow >= 6 || isSolved) return
     if (letters[currentRow].length !== 5) {
       alert('Please enter a 5-letter word before committing.')
       return
@@ -179,6 +194,8 @@ export default function App() {
     updatedCommitted[currentRow] = true
     setCommitted(updatedCommitted)
     setCurrentRow(prev => prev + 1)
+    setSelectedCol(0)
+    setErrorMessage(null)
   }
 
   // Re-fetch recommendation when a row is committed
@@ -191,10 +208,12 @@ export default function App() {
   // Reset Board
   const handleResetBoard = () => {
     setCurrentRow(0)
+    setSelectedCol(0)
     setLetters(['', '', '', '', '', ''])
     setFeedbacks(Array.from({ length: 6 }, () => ['B', 'B', 'B', 'B', 'B']))
     setCommitted([false, false, false, false, false, false])
     setIsSolved(false)
+    setErrorMessage(null)
     setTimeout(() => handleFetchRecommendation(), 50)
   }
 
@@ -217,7 +236,9 @@ export default function App() {
       )
       setArenaRows(data.rows || data.results || [])
     } catch (err) {
-      console.error('Arena comparison failed:', err)
+      const msg = err instanceof Error ? err.message : 'Arena comparison failed.'
+      console.error('Arena comparison failed:', msg)
+      setErrorMessage(msg)
     } finally {
       setLoading(prev => ({ ...prev, arena: false }))
     }
@@ -239,7 +260,9 @@ export default function App() {
       setSimTurns(data.turns || [])
       setSimSolved(Boolean(data.solved))
     } catch (err) {
-      console.error('Simulation failed:', err)
+      const msg = err instanceof Error ? err.message : 'Simulation failed.'
+      console.error('Simulation failed:', msg)
+      alert(msg)
     } finally {
       setLoading(prev => ({ ...prev, simulate: false }))
     }
@@ -251,6 +274,7 @@ export default function App() {
       setSimSecret(word.toUpperCase())
     } catch (err) {
       console.error('Failed to get random word:', err)
+      setSimSecret('CRANE')
     }
   }
 
@@ -261,7 +285,9 @@ export default function App() {
       const data = await api.fetchMLSummary()
       setGateReports(data.gate_reports || {})
     } catch (err) {
-      console.error('Failed to load ML summary:', err)
+      const msg = err instanceof Error ? err.message : 'Failed to load ML summary.'
+      console.error('Failed to load ML summary:', msg)
+      setErrorMessage(msg)
     } finally {
       setLoading(prev => ({ ...prev, ml: false }))
     }
@@ -284,7 +310,14 @@ export default function App() {
       const data = await api.checkDictionary(word)
       setDictReport(data)
     } catch (err) {
-      console.error('Dictionary check failed:', err)
+      const msg = err instanceof Error ? err.message : 'Dictionary check failed.'
+      console.error('Dictionary check failed:', msg)
+      setDictReport({
+        word,
+        is_answer: false,
+        is_guess: false,
+        explanation: msg,
+      })
     } finally {
       setLoading(prev => ({ ...prev, dict: false }))
     }
@@ -377,7 +410,7 @@ export default function App() {
                   <Heading level={2} weight="bold">
                     WORDLE AI
                   </Heading>
-                  <Badge label="React 19 &bull; Meta Astryx" variant="green" />
+                  <Badge label="Provably Optimal" variant="green" />
                   <Badge label="v1.0.0" variant="neutral" />
                 </div>
                 <Text color="secondary">
@@ -386,7 +419,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Navigation Tabs using Meta Astryx TabList */}
+            {/* Navigation Tabs */}
             <div style={{ minWidth: 420 }}>
               <TabList value={activeTab} onChange={(val: string) => setActiveTab(val)}>
                 <Tab value="copilot" label="Play & Copilot" icon={<Gamepad2 size={16} />} />
@@ -407,12 +440,16 @@ export default function App() {
               letters={letters}
               feedbacks={feedbacks}
               committed={committed}
+              selectedCol={selectedCol}
+              onSelectCol={setSelectedCol}
               selectedStrategy={selectedStrategy}
               strategyOptions={STRATEGY_OPTIONS}
               recommendation={recommendation}
               gameState={gameState}
               isSolved={isSolved}
               isThinking={loading.copilot}
+              isGameOver={currentRow >= 6}
+              errorMessage={errorMessage}
               onLetterInput={handleLetterInput}
               onBackspace={handleBackspace}
               onCommitRow={handleCommitRow}

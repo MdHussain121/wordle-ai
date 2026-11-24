@@ -15,6 +15,8 @@ interface CopilotCardProps {
   gameState: GameViewState | null
   isSolved: boolean
   isThinking: boolean
+  isGameOver?: boolean
+  errorMessage?: string | null
   canApplyGuess: boolean
   onApplyGuess: () => void
   onSelectCandidate: (word: string) => void
@@ -28,6 +30,8 @@ export const CopilotCard: React.FC<CopilotCardProps> = ({
   gameState,
   isSolved,
   isThinking,
+  isGameOver,
+  errorMessage,
   canApplyGuess,
   onApplyGuess,
   onSelectCandidate,
@@ -90,8 +94,18 @@ export const CopilotCard: React.FC<CopilotCardProps> = ({
           }}
         >
           <Badge
-            label={isSolved ? 'Puzzle Solved' : isThinking ? 'Computing...' : 'Recommended Move'}
-            variant={isSolved ? 'success' : 'green'}
+            label={
+              isSolved
+                ? 'Puzzle Solved'
+                : isGameOver
+                ? 'Game Complete'
+                : isThinking
+                ? 'Computing...'
+                : errorMessage
+                ? 'Feedback Contradiction'
+                : 'Recommended Move'
+            }
+            variant={isSolved ? 'green' : errorMessage ? 'neutral' : 'green'}
           />
           <Button
             label="Apply Guess"
@@ -99,7 +113,7 @@ export const CopilotCard: React.FC<CopilotCardProps> = ({
             size="sm"
             icon={<Sparkles size={14} />}
             onClick={onApplyGuess}
-            isDisabled={!canApplyGuess || isSolved}
+            isDisabled={!canApplyGuess || isSolved || isGameOver}
           />
         </div>
 
@@ -109,19 +123,36 @@ export const CopilotCard: React.FC<CopilotCardProps> = ({
             fontSize: '2.8rem',
             fontWeight: 900,
             letterSpacing: '0.1em',
-            color: isSolved ? '#10b981' : '#ffffff',
+            color: isSolved ? '#10b981' : isGameOver ? '#9ca3af' : errorMessage ? '#f59e0b' : '#ffffff',
             marginBottom: 12,
           }}
         >
           {isSolved
             ? 'SOLVED! 🏆'
+            : isGameOver
+            ? 'GAME OVER'
             : recommendation?.guess
             ? recommendation.guess.toUpperCase()
+            : errorMessage
+            ? 'NO MATCH'
             : 'READY'}
         </div>
 
-        <p style={{ margin: 0, color: '#d1d5db', fontSize: '0.9rem', lineHeight: 1.5 }}>
-          {recommendation?.explanation || 'Awaiting initial board evaluation...'}
+        <p
+          style={{
+            margin: 0,
+            color: errorMessage ? '#fbbf24' : '#d1d5db',
+            fontSize: '0.9rem',
+            lineHeight: 1.5,
+          }}
+        >
+          {errorMessage ||
+            recommendation?.explanation ||
+            (isSolved
+              ? 'Puzzle solved successfully!'
+              : isGameOver
+              ? 'Maximum attempts reached.'
+              : 'Awaiting initial board evaluation...')}
         </p>
       </div>
 

@@ -19,8 +19,10 @@ import numpy as np
 
 from ..engine.state import GameState, new_game
 from ..engine.table import ComputedRows, RowSource, open_rows
+from ..errors import ArtifactMismatchError
 from ..strategy import HEURISTIC_STRATEGY_NAMES, get_strategy
 from ..strategy.base import Decision, Strategy
+from ..strategy.exact import ExactStrategy
 from ..types import Pattern, Profile, RuleMode, Turn
 
 
@@ -145,7 +147,7 @@ class SolverService:
 
     def view(self, state: GameState) -> GameView:
         top: list[CandidateView] = []
-        if self.top_candidates:
+        if self.top_candidates and state.remaining > 0:
             posterior = state.posterior
             if self.prior_weights is not None:
                 masked = np.where(state.candidates, self.prior_weights, 0.0)
@@ -284,40 +286,54 @@ def compare_strategies(
         seen.add(name)
     picks: list[StrategyComparison] = []
     for name in names:
-        if name == "exact":
-            pol = getattr(service, "policy", None)
-            if pol is None and isinstance(service.strategy, ExactStrategy):
-                pol = service.strategy.policy
-            if pol is None:
-                from pathlib import Path
-                default_p = Path("policies") / f"{service.profile.profile_id}.normal.uniform.policy.json"
-                if default_p.exists():
-                    try:
-                        from ..solver.policy import load_policy
-                        pol = load_policy(default_p, profile=service.profile, verify=False)
-                    except Exception:
-                        pol = None
-            if pol is None:
-                raise ValueError("exact strategy requires policy artifact")
-            strategy = get_strategy("exact", policy=pol)
-        else:
-            strategy = get_strategy(name, prior_weights=service.prior_weights)
-        decision = strategy.choose(state, service.rows)
-        view = RecommendationView.from_decision(decision)
-        picks.append(
-            StrategyComparison(
-                strategy=name,
-                objective=str(getattr(strategy, "objective", "")),
-                guess=view.guess,
-                score=view.score,
-                expected_remaining=view.expected_remaining,
-                worst_case=view.worst_case,
-                p_solve_now=view.p_solve_now,
-                branch=view.branch,
-                elapsed_ms=view.elapsed_ms,
-                explanation=view.explanation,
+        try:
+            if name == "exact":
+                pol = getattr(service, "policy", None)
+                if pol is None and isinstance(service.strategy, ExactStrategy):
+                    pol = service.strategy.policy
+                if pol is None:
+                    from pathlib import Path
+                    default_p = Path("policies") / f"{service.profile.profile_id}.normal.uniform.policy.json"
+                    if default_p.exists():
+                        try:
+                            from ..solver.policy import load_policy
+                            pol = load_policy(default_p, profile=service.profile, verify=False)
+                        except Exception:
+                            pol = None
+                if pol is None:
+                    raise ValueError("exact strategy requires policy artifact")
+                strategy = get_strategy("exact", policy=pol)
+            else:
+                strategy = get_strategy(name, prior_weights=service.prior_weights)
+
+            try:
+                decision = strategy.choose(state, service.rows)
+                view = RecommendationView.from_decision(decision)
+                explanation = view.explanation
+            except ArtifactMismatchError:
+                # State departed the exact DP policy tree; fall back to balanced hybrid
+                fallback = get_strategy("hybrid.balanced", prior_weights=service.prior_weights)
+                decision = fallback.choose(state, service.rows)
+                view = RecommendationView.from_decision(decision)
+                explanation = f"[Fallback: DP tree departed] {view.explanation}"
+
+            picks.append(
+                StrategyComparison(
+                    strategy=name,
+                    objective=str(getattr(strategy, "objective", "")),
+                    guess=view.guess,
+                    score=view.score,
+                    expected_remaining=view.expected_remaining,
+                    worst_case=view.worst_case,
+                    p_solve_now=view.p_solve_now,
+                    branch=view.branch,
+                    elapsed_ms=view.elapsed_ms,
+                    explanation=explanation,
+                )
             )
-        )
+        except Exception:
+            # Continue so one unsupported strategy doesn't crash the entire arena
+            continue
     groups: dict[str, list[StrategyComparison]] = {}
     for pick in picks:
         groups.setdefault(pick.guess, []).append(pick)

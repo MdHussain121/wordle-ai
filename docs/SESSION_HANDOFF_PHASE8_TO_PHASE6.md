@@ -1,7 +1,7 @@
 # Wordle AI — Session Handoff & Phase 6 ML Transition Playbook
 
 **Session Date:** November 24, 2026  
-**Workspace:** `c:\Users\moham\Music\wordle`  
+**Workspace:** `wordle` (root repository directory)  
 **Current Milestone Completed:** Phase 8 / Step 3 — `classic.en.5` Exact DP Solve & Canonical Benchmark B-01 Reproduction  
 **Next Milestone:** Phase 6 — Machine Learning Research, Training & Policy Distillation  
 **Git Baseline:** `2bd3fa0` (`feat(policy): publish canonical exact DP policy for classic.en.5 (B-01 reproduced 3.4212)`)  
@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-In this session, we resolved the performance and memory bottlenecks in the Rust exact DP kernel ([rust/wordle_core](file:///C:/Users/moham/Music/wordle/rust/wordle_core)), completed all 148 feedback buckets for the canonical Wordle opener `salet` on `classic.en.5`, assembled the full exact decision policy tree, and rigorously verified the published benchmark:
+In this session, we resolved the performance and memory bottlenecks in the Rust exact DP kernel ([rust/wordle_core](../rust/wordle_core)), completed all 148 feedback buckets for the canonical Wordle opener `salet` on `classic.en.5`, assembled the full exact decision policy tree, and rigorously verified the published benchmark:
 - **Reproduced B-01 Benchmark:** Exact average score of **$3.4212$** ($7,920$ total turns across all $2,315$ words), matching Selby (2022) and Bertsimas & Paskov (2025) with **$\Delta = -0.0000$**.
 - **$100.00\%$ Win Rate:** $0$ failures, maximum depth of **$5$ guesses** ($100\%$ solved in $\le 5$ turns).
 - **Sub-Millisecond Policy Play:** $0.14\text{ ms}$ p95 evaluation latency per turn during replay.
@@ -45,8 +45,8 @@ To ensure throughput scaled without Windows memory paging:
 ## 3. Canonical Artifacts & Benchmarks
 
 ### Primary Artifacts
-- **Policy File:** [policies/classic.en.5.normal.uniform.policy.json](file:///C:/Users/moham/Music/wordle/policies/classic.en.5.normal.uniform.policy.json) ($1.99\text{ MB}$, $17,970$ lines)
-- **Sidecar Checksum:** [policies/classic.en.5.normal.uniform.policy.json.sha256](file:///C:/Users/moham/Music/wordle/policies/classic.en.5.normal.uniform.policy.json.sha256) (`f80f1112d543efe1...`)
+- **Policy File:** [policies/classic.en.5.normal.uniform.policy.json](../policies/classic.en.5.normal.uniform.policy.json) ($1.99\text{ MB}$, $17,970$ lines)
+- **Sidecar Checksum:** [policies/classic.en.5.normal.uniform.policy.json.sha256](../policies/classic.en.5.normal.uniform.policy.json.sha256) (`f80f1112d543efe1...`)
 - **Bucket Checkpoints:** `data/exact/checkpoints/classic_salet/bucket_{000..242}.json` (114 non-trivial buckets + 34 singletons = 148 total).
 
 ### Acceptance Command Verification

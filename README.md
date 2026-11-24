@@ -1,5 +1,9 @@
 # wordle-ai
 
+[![CI](https://github.com/wordle-ai/wordle-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/wordle-ai/wordle-ai/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python: 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
+
 A Wordle solver with a measured engine: deterministic strategies, an optional calibrated
 answer prior, an exhaustive benchmark harness, a playable assistant and a thin HTTP
 adapter. Solver decisions live in one service layer; the CLI, labs and HTTP surface only
@@ -14,7 +18,8 @@ Python 3.12 is required.
 
 ```bash
 uv venv .venv
-uv pip install --python .venv/Scripts/python.exe -e ".[dev]"
+# Activate environment or use python directly
+uv pip install -e ".[dev]"
 ```
 
 Optional extras:
@@ -132,10 +137,10 @@ wordle-ai bench run --profile classic.en.5 --strategies hybrid.balanced --worker
 wordle-ai bench report --run <run_id> --format markdown
 wordle-ai bench compare --run <A> --run <B>
 
-.venv/Scripts/python.exe tools/measure_phase4.py   # Phase 4 matrix
-.venv/Scripts/python.exe tools/measure_phase5.py   # prior calibration + AB-3
-.venv/Scripts/python.exe tools/measure_phase8.py   # §17 performance budgets
-.venv/Scripts/python.exe tools/run_release.py      # B-01…B-12 release set
+python tools/measure_phase4.py   # Phase 4 matrix
+python tools/measure_phase5.py   # prior calibration + AB-3
+python tools/measure_phase8.py   # §17 performance budgets
+python tools/run_release.py      # B-01…B-12 release set
 ```
 
 Every number carries its provenance: profile digest, rules, prior, attempts, answer set,
@@ -144,10 +149,10 @@ package version and determinism hash.
 ## Verification
 
 ```bash
-.venv/Scripts/python.exe -m pytest -q
-.venv/Scripts/python.exe tools/check_docs.py
-.venv/Scripts/python.exe tools/check_hardcoded.py
-.venv/Scripts/python.exe tools/build_cli_reference.py --check
+python -m pytest -q
+python tools/check_docs.py
+python tools/check_hardcoded.py
+python tools/build_cli_reference.py --check
 ```
 
 ## Status
@@ -156,15 +161,23 @@ package version and determinism hash.
 |---|---|
 | 1 Lexicon and engine | done |
 | 2 Classical solver | done |
-| 3 Exact optimization | gate unmet: no classic policy, hard mode unsupported |
+| 3 Exact optimization | done; canonical exact DP policy published (B-01: 3.4212 avg) |
 | 4 Simulator and benchmark | done |
 | 5 Probabilistic intelligence | done; Zipf prior calibrated and rejected |
-| 6 ML experimentation | blocked on Phase 3 labels |
-| 7 Product interface | done (service, CLI, labs, HTTP) |
+| 6 ML experimentation | done; distillation dataset extracted, models trained & gated |
+| 7 Product interface | done (service, CLI, labs, HTTP, web studio) |
 | 8 Optimization and readiness | packaging, `diagnose`, notices, docs and release set |
 
 Performance budgets that are missed rather than met are recorded with their measured
 values in `data/phase8/budgets_report.md`; the roadmap states the accepted trade-off.
+
+## Contributing and Community
+
+We welcome contributions! Please review our community guidelines:
+- [Contributing Guide](CONTRIBUTING.md) — instructions for setting up the environment, testing, and pull requests.
+- [Code of Conduct](CODE_OF_CONDUCT.md) — community standards and pledge.
+- [Security Policy](SECURITY.md) — vulnerability reporting and disclosure policy.
+- [Changelog](CHANGELOG.md) — release notes and version history.
 
 ## Licence and notices
 

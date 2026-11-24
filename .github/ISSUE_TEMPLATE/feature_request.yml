@@ -1,0 +1,34 @@
+name: Feature Request
+description: Propose a new feature, strategy, or enhancement for Wordle AI
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea for a new solver strategy, heuristic, UI improvement, or benchmark tool? Tell us about it!
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: Is your feature request related to a specific problem or research question?
+      placeholder: "A clear description of what challenge or opportunity this addresses."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution or Implementation
+      description: Describe your proposed solution or how you envision the feature working.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative approaches or workarounds you have considered.
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any literature citations, benchmarks, or references.

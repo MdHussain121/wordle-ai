@@ -1,23 +1,44 @@
-# Build output and fetched/derived word data are never committed.
+# Data files (raw lexicons, frequency data, corpus artifacts)
 data/
-policies/
 
-# Python
+# Policies: keep exact precomputed policy while ignoring experiment artifacts
+policies/*
+!policies/classic.en.5.normal.uniform.policy.json*
+
+# Python & test caches
 .venv/
 __pycache__/
 *.py[cod]
-.pytest_cache/
 *.egg-info/
 build/
 dist/
+.pytest_cache/
+.hypothesis/
+.ruff_cache/
+.freebuff/
+.coverage*
+htmlcov/
+.mypy_cache/
 
-# Local tooling
-.DS_Store
-Thumbs.db
+# Rust targets
+target/
+rust/**/target/
+rust/wordle_core/target/
+
+# Web & Node
 node_modules/
 **/node_modules/
+web/dist/
+
+# Editor & IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
 .desloppify/
 
-# Rust
-target/
-rust/wordle_core/target/
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example

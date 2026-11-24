@@ -12,11 +12,14 @@ export interface RecommendResponse {
   solved: boolean
   recommendation: RecommendationData | null
   state: GameViewState
+  game_over?: boolean
+  error?: string
 }
 
 export interface CompareResponse {
   rows?: StrategyRow[]
   results?: StrategyRow[]
+  error?: string
 }
 
 export interface SimulateResponse {
@@ -42,7 +45,10 @@ export async function fetchRecommendation(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ history, strategy }),
   })
-  if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}))
+    throw new Error(errBody.detail || `HTTP error ${res.status}`)
+  }
   return res.json()
 }
 
@@ -55,7 +61,10 @@ export async function compareStrategies(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ history, strategies }),
   })
-  if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}))
+    throw new Error(errBody.detail || `HTTP error ${res.status}`)
+  }
   return res.json()
 }
 

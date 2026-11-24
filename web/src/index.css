@@ -166,3 +166,45 @@ body {
 .custom-table tr:hover td {
   background-color: rgba(255, 255, 255, 0.03);
 }
+
+/* Progress & Loading Animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.progress-bar-shimmer {
+  background: linear-gradient(90deg, #10b981 0%, #3b82f6 50%, #10b981 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite linear;
+}

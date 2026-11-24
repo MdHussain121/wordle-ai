@@ -1,0 +1,19 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Explicit text files with CRLF (Windows scripts)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary file declarations
+*.pt binary
+*.joblib binary
+*.woff2 binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.gz binary
+*.parquet binary
+*.arrow binary
+*.wasm binary
+*.policy.json binary

@@ -16,6 +16,7 @@ Provides:
 
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 from pathlib import Path
 import random
@@ -27,8 +28,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from ..errors import WordleError
-from ..strategy import HEURISTIC_STRATEGY_NAMES, get_strategy
+from ..errors import ArtifactMismatchError, InconsistentFeedback, ProfileIntegrityError, WordleError
+from ..strategy import get_strategy
 from ..strategy.exact import ExactStrategy
 from ..types import Pattern, Profile, Turn
 from .service import RecommendationView, SolverService, compare_strategies, dictionary_report
@@ -124,10 +125,10 @@ def create_app(service: SolverService, *, policy: dict | None = None) -> FastAPI
         if dist_index.exists():
             return HTMLResponse(dist_index.read_text(encoding="utf-8"))
         return HTMLResponse(
-            "<!DOCTYPE html><html><head><title>Wordle AI React API</title></head>"
+            "<!DOCTYPE html><html><head><title>Wordle AI API</title></head>"
             "<body style='font-family: sans-serif; background: #121213; color: #fff; padding: 2rem;'>"
             "<h1>Wordle AI API is Active</h1>"
-            "<p>React GUI development server runs on <a style='color: #538d4e;' href='http://localhost:5173'>http://localhost:5173</a>.</p>"
+            "<p>GUI development server runs on <a style='color: #538d4e;' href='http://localhost:5173'>http://localhost:5173</a>.</p>"
             "<p>To build production assets, run <code>npm run build</code> inside <code>web/</code>.</p>"
             "</body></html>"
         )
@@ -154,7 +155,43 @@ def create_app(service: SolverService, *, policy: dict | None = None) -> FastAPI
         }
 
     def _handle_recommend(request: HistoryRequest) -> dict:
-        state = _state(service, request.history)
+        try:
+            state = service.turns(_turns(service, request.history))
+        except InconsistentFeedback:
+            return {
+                "state": {
+                    "profile_id": service.profile.profile_id,
+                    "mode": service.mode.value,
+                    "attempts_used": len(request.history),
+                    "attempts_left": max(0, service.attempts - len(request.history)),
+                    "remaining": 0,
+                    "solved": False,
+                    "history": [e.guess for e in request.history],
+                    "top_candidates": [],
+                },
+                "recommendation": None,
+                "solved": False,
+                "error": "No dictionary words match this feedback pattern. Please verify your feedback tiles.",
+            }
+        except ProfileIntegrityError:
+            return {
+                "state": {
+                    "profile_id": service.profile.profile_id,
+                    "mode": service.mode.value,
+                    "attempts_used": service.attempts,
+                    "attempts_left": 0,
+                    "remaining": 0,
+                    "solved": False,
+                    "history": [e.guess for e in request.history],
+                    "top_candidates": [],
+                },
+                "recommendation": None,
+                "solved": False,
+                "game_over": True,
+            }
+        except WordleError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
         if state.is_solved():
             return {
                 "state": service.view(state).to_dict(),
@@ -162,7 +199,19 @@ def create_app(service: SolverService, *, policy: dict | None = None) -> FastAPI
                 "solved": True,
             }
         if state.attempts_left <= 0:
-            raise HTTPException(status_code=409, detail="no attempts remain")
+            return {
+                "state": service.view(state).to_dict(),
+                "recommendation": None,
+                "solved": state.is_solved(),
+                "game_over": True,
+            }
+        if state.remaining == 0:
+            return {
+                "state": service.view(state).to_dict(),
+                "recommendation": None,
+                "solved": False,
+                "error": "No dictionary words match this feedback pattern. Please verify your feedback tiles.",
+            }
 
         # Determine strategy to use
         strat = service.strategy
@@ -177,12 +226,26 @@ def create_app(service: SolverService, *, policy: dict | None = None) -> FastAPI
                     strat = get_strategy("exact", policy=active_policy)
                 else:
                     strat = get_strategy(request.strategy, prior_weights=service.prior_weights)
+            except HTTPException:
+                raise
             except Exception as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-        rec = RecommendationView.from_decision(
-            strat.choose(state, service.rows, cache=service._cache)
-        )
+        try:
+            decision = strat.choose(state, service.rows, cache=service._cache)
+            rec = RecommendationView.from_decision(decision)
+        except ArtifactMismatchError:
+            # Fall back gracefully to balanced hybrid if exact DP tree was departed
+            fallback_strat = get_strategy("hybrid.balanced", prior_weights=service.prior_weights)
+            decision = fallback_strat.choose(state, service.rows, cache=service._cache)
+            rec_fb = RecommendationView.from_decision(decision)
+            rec = replace(
+                rec_fb,
+                explanation=f"(Exact DP tree departed at candidate size {state.remaining}; evaluated with Balanced Hybrid): {rec_fb.explanation}",
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
         return {
             "state": service.view(state).to_dict(),
             "recommendation": rec.to_dict(),
@@ -195,10 +258,39 @@ def create_app(service: SolverService, *, policy: dict | None = None) -> FastAPI
         return _handle_recommend(request)
 
     def _handle_compare(request: CompareRequest) -> dict:
-        state = _state(service, request.history)
+        try:
+            state = service.turns(_turns(service, request.history))
+        except (InconsistentFeedback, ProfileIntegrityError):
+            return {
+                "state": {
+                    "profile_id": service.profile.profile_id,
+                    "mode": service.mode.value,
+                    "attempts_used": len(request.history),
+                    "attempts_left": max(0, service.attempts - len(request.history)),
+                    "remaining": 0,
+                    "solved": False,
+                    "history": [e.guess for e in request.history],
+                    "top_candidates": [],
+                },
+                "results": [],
+                "rows": [],
+                "distinct_guesses": [],
+                "groups": [],
+                "pairwise_disagreements": 0,
+            }
+
+        if state.remaining == 0:
+            return {
+                "state": service.view(state).to_dict(),
+                "results": [],
+                "rows": [],
+                "distinct_guesses": [],
+                "groups": [],
+                "pairwise_disagreements": 0,
+            }
         try:
             return compare_strategies(service, state, request.strategies)
-        except (KeyError, ValueError) as exc:
+        except (KeyError, ValueError, WordleError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.post("/compare")
@@ -244,7 +336,11 @@ def create_app(service: SolverService, *, policy: dict | None = None) -> FastAPI
 
         while state.attempts_left > 0:
             remaining_before = state.remaining
-            decision = sim_strategy.choose(state, service.rows)
+            try:
+                decision = sim_strategy.choose(state, service.rows)
+            except ArtifactMismatchError:
+                fallback_strat = get_strategy("hybrid.balanced", prior_weights=service.prior_weights)
+                decision = fallback_strat.choose(state, service.rows)
             rec = RecommendationView.from_decision(decision)
             pattern = service._feedback(rec.guess, word)
             is_win = rec.guess == word

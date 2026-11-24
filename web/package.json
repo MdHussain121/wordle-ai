@@ -1,7 +1,14 @@
 {
-  "name": "web",
+  "name": "wordle-ai-web",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Interactive Web Studio and AI Copilot for Wordle AI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wordle-ai/wordle-ai.git",
+    "directory": "web"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

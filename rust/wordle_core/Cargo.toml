@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 description = "Optional Rust DP kernel for the Wordle exact solver (Python remains the oracle)."
 license = "MIT"
+authors = ["Wordle AI Contributors"]
+repository = "https://github.com/wordle-ai/wordle-ai"
+keywords = ["wordle", "solver", "dynamic-programming", "game-theory"]
 
 [[bin]]
 name = "wordle_core"

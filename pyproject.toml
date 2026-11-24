@@ -6,12 +6,34 @@ build-backend = "hatchling.build"
 name = "wordle-ai"
 dynamic = ["version"]
 description = "Wordle-solving AI: measured solver, benchmark harness and play assistant"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+  {name = "Wordle AI Contributors"}
+]
+keywords = ["wordle", "ai", "solver", "dynamic-programming", "information-theory", "benchmark"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Games/Entertainment :: Puzzle Games",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 requires-python = ">=3.12"
 dependencies = [
   "numpy>=1.26",
   "pydantic>=2.6",
   "typer>=0.12",
 ]
+
+[project.urls]
+Repository = "https://github.com/wordle-ai/wordle-ai"
+Issues = "https://github.com/wordle-ai/wordle-ai/issues"
+Documentation = "https://github.com/wordle-ai/wordle-ai#readme"
+Changelog = "https://github.com/wordle-ai/wordle-ai/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
