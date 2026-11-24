@@ -102,13 +102,21 @@ def fetch_source(source_id: str, lock: dict) -> SourceStatus:
         if not marker.exists():
             extract_to.mkdir(parents=True, exist_ok=True)
             with zipfile.ZipFile(local) as archive:
-                archive.extractall(extract_to.parent)
+                has_final = any(name.startswith("final/") for name in archive.namelist())
+                if has_final:
+                    archive.extractall(extract_to)
+                else:
+                    archive.extractall(extract_to.parent)
             # The archive expands to a versioned directory; normalise its name.
             extracted = [p for p in extract_to.parent.iterdir() if p.is_dir() and p.name.startswith("scowl-")]
             if not marker.exists() and extracted:
                 if extract_to.exists():
                     shutil.rmtree(extract_to)
                 extracted[0].rename(extract_to)
+            # Handle if 'final' was extracted to extract_to.parent
+            direct_final = extract_to.parent / "final"
+            if not marker.exists() and direct_final.exists():
+                direct_final.rename(marker)
         if not marker.exists():
             raise SourceIntegrityError(
                 f"archive {local} did not produce {marker}", path=str(marker)
