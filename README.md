@@ -1,6 +1,6 @@
 # wordle-ai
 
-[![CI](https://github.com/wordle-ai/wordle-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/wordle-ai/wordle-ai/actions/workflows/ci.yml)
+[![CI](https://github.com/MdHussain121/wordle-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/MdHussain121/wordle-ai/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
 
