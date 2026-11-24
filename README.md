@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🟩 Wordle AI
+# Wordle AI
 
 **A mathematically optimal Wordle solver, research benchmark harness, neural distillation engine, and interactive Web Studio.**
 
@@ -10,13 +10,13 @@
 [![React 19](https://img.shields.io/badge/React-19.3-61dafb.svg)](web/)
 [![Code Style: Ruff](https://img.shields.io/badge/Code%20Style-Ruff-black.svg)](https://github.com/astral-sh/ruff)
 
-[Live Web Studio](#-interactive-web-studio) • [Optimal DP Solver](#-solver-algorithms--benchmarks) • [Quickstart](#-quickstart) • [CLI Reference](docs/CLI_REFERENCE.md) • [Contributing](CONTRIBUTING.md)
+[Live Web Studio](#interactive-web-studio) • [Optimal DP Solver](#solver-algorithms--benchmarks) • [Quickstart](#quickstart) • [CLI Reference](docs/CLI_REFERENCE.md) • [Contributing](CONTRIBUTING.md)
 
 </div>
 
 ---
 
-## 📖 Overview
+## Overview
 
 **Wordle AI** is a state-of-the-art computational platform for analyzing and solving Wordle. It unites **provably optimal exact dynamic programming**, **information-theoretic entropy heuristics**, **zero-leakage neural policy distillation**, and a modern **React 19 Web Studio** with a live real-time Copilot.
 
@@ -24,18 +24,18 @@ Whether you are looking to understand the information theory behind the game, be
 
 ---
 
-## ✨ Key Highlights
+## Key Highlights
 
-- 🎯 **Provably Optimal Exact DP:** Solves Wordle in **3.4212 average steps** on the canonical wordlist—the theoretical mathematical limit (reproducing the landmark B-01 benchmark).
-- 🧠 **Information-Theoretic Solvers:** Shannon entropy maximization, expected partition size reduction, and minimax worst-case branch pruning.
-- ⚡ **Neural Value Lookahead:** Deep surrogate value regressors and policy rankers distilled from exact DP state partitions without data leakage.
-- 🎨 **Interactive Web Studio:** A React 19 single-page application featuring an interactive 6×5 grid, tile feedback cycling (Gray → Yellow → Green), live Copilot hints, and a multi-algorithm Strategy Arena.
-- 📊 **Exhaustive Benchmark Suite:** Multiprocessing simulation harness with provenance hashes, strict performance budgets, and deterministic evaluation.
-- 🔌 **Dual Interfaces:** Fully accessible via standard CLI (`wordle-ai`), headless Python SDK, or high-performance FastAPI HTTP endpoints.
+- **Provably Optimal Exact DP:** Solves Wordle in **3.4212 average steps** on the canonical wordlist—the theoretical mathematical limit (reproducing the landmark B-01 benchmark).
+- **Information-Theoretic Solvers:** Shannon entropy maximization, expected partition size reduction, and minimax worst-case branch pruning.
+- **Neural Value Lookahead:** Deep surrogate value regressors and policy rankers distilled from exact DP state partitions without data leakage.
+- **Interactive Web Studio:** A React 19 single-page application featuring an interactive 6×5 grid, tile feedback cycling (Gray → Yellow → Green), live Copilot hints, and a multi-algorithm Strategy Arena.
+- **Exhaustive Benchmark Suite:** Multiprocessing simulation harness with provenance hashes, strict performance budgets, and deterministic evaluation.
+- **Dual Interfaces:** Fully accessible via standard CLI (`wordle-ai`), headless Python SDK, or high-performance FastAPI HTTP endpoints.
 
 ---
 
-## 🚀 Quickstart
+## Quickstart
 
 ### Prerequisites
 
@@ -103,7 +103,7 @@ Choose how you want to use Wordle AI:
 
 ---
 
-## 🌐 Interactive Web Studio
+## Interactive Web Studio
 
 Wordle AI includes an interactive Web Studio designed for players, analysts, and researchers:
 
@@ -121,7 +121,7 @@ wordle-ai web
 
 ---
 
-## 🎮 CLI Usage
+## CLI Usage
 
 Wordle AI provides an extensive, modular CLI for terminal play, batch evaluations, and policy generation.
 
@@ -168,7 +168,7 @@ For full CLI documentation, see the [CLI Reference](docs/CLI_REFERENCE.md).
 
 ---
 
-## 📈 Solver Algorithms & Benchmarks
+## Solver Algorithms & Benchmarks
 
 The engine implements multiple discrete decision algorithms with standardized performance tracking:
 
@@ -182,7 +182,7 @@ The engine implements multiple discrete decision algorithms with standardized pe
 
 ---
 
-## 📚 Lexicon Management & Reproducibility
+## Lexicon Management & Reproducibility
 
 Word lists are built from open sources pinned with SHA-256 integrity hashes in `sources.lock`:
 
@@ -200,7 +200,7 @@ wordle-ai lex verify --all
 
 ---
 
-## 🧪 Testing & Verification
+## Testing & Verification
 
 The test suite enforces mathematical correctness, determinism, and execution speed budgets:
 
@@ -218,7 +218,7 @@ python tools/check_hardcoded.py
 
 ---
 
-## 🤝 Community & Contributing
+## Community & Contributing
 
 We welcome contributions, bug reports, and research extensions!
 - **[Contributing Guide](CONTRIBUTING.md)** — development environment setup, coding conventions, and pull request checklist.
@@ -228,7 +228,7 @@ We welcome contributions, bug reports, and research extensions!
 
 ---
 
-## 📄 License & Attribution
+## License & Attribution
 
 This project is licensed under the **[MIT License](LICENSE)**.
 

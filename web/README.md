@@ -17,7 +17,7 @@ Wordle AI Studio provides an accessible, responsive graphical studio for players
   - Disagreement audit highlighting where and why strategies diverge on the current board.
 - **AI Step-by-Step Simulation**:
   - Enter any secret word (or pick a random solution) and watch the AI solve it step-by-step with real-time tile animation and latency stats.
-- **Phase 6 ML Diagnostics**:
+- **ML Diagnostics & Gate Reports**:
   - Admission gate inspectability (G1–G8), model parameter inspectability, and training metrics.
 - **Dictionary & Lexicon Inspector**:
   - Fast validation and status lookup across 12,972 allowable words and 2,315 solutions.
