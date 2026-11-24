@@ -53,13 +53,18 @@ def web(
     root = Path(data_dir) if data_dir is not None else Path(settings.general.data_dir)
     profile_dir = root / "processed" / profile
     if not profile_dir.exists():
-        fail(
-            WordleError(
-                f"Profile directory not found: {profile_dir}. Run `wordle-ai lex process` first.",
-                code="missing_profile",
+        if profile == "classic.en.5" and (root / "processed" / "strict.en.5").exists():
+            profile = "strict.en.5"
+            profile_dir = root / "processed" / profile
+        else:
+            fail(
+                WordleError(
+                    f"Profile directory not found: {profile_dir}. "
+                    "Run `wordle-ai lex fetch --source scowl && wordle-ai lex fetch --source enable && wordle-ai lex build --profile strict.en.5` first.",
+                    code="missing_profile",
+                )
             )
-        )
-        return
+            return
 
     loaded_profile = load_profile(profile_dir)
     table_path = profile_dir / TABLE_NAME

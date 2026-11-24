@@ -42,16 +42,18 @@ Whether you are looking to understand the information theory behind the game, be
 - **Python 3.12+**
 - **Node.js 20+** (for Web Studio development)
 
-### Installation
+### Installation & 3-Step Setup
 
-Clone the repository and install the package with recommended dependencies:
+Follow these 3 quick steps to get up and running from scratch:
+
+#### Step 1: Clone and Install
 
 ```bash
-# Clone the repository
+# 1. Clone repository
 git clone https://github.com/MdHussain121/wordle-ai.git
 cd wordle-ai
 
-# Create and activate virtual environment
+# 2. Create and activate virtual environment
 python -m venv .venv
 
 # On Linux/macOS:
@@ -59,9 +61,36 @@ source .venv/bin/activate
 # On Windows (PowerShell):
 .venv\Scripts\Activate.ps1
 
-# Install in editable mode with development & web dependencies
+# 3. Install dependencies
 pip install -e ".[dev,http,prior,ml]"
 ```
+
+#### Step 2: Initialize Dictionaries (One-Time Setup ~30s)
+
+Word lists are built from open verified sources (SCOWL and ENABLE) without bundling copyrighted wordlists:
+
+```bash
+# Download open sources and compile the standard 5-letter profile
+wordle-ai lex fetch --source scowl
+wordle-ai lex fetch --source enable
+wordle-ai lex build --profile strict.en.5
+```
+
+#### Step 3: Run the Web Studio or Play in Terminal!
+
+Choose how you want to use Wordle AI:
+
+- **Option A: Interactive Web Studio (Graphical Board & Copilot)**
+  ```bash
+  wordle-ai web
+  ```
+  *Automatically launches at `http://localhost:8000` with the 6×5 interactive grid and real-time AI advice.*
+
+- **Option B: Terminal Play Assistant (Solve your real-life game)**
+  ```bash
+  wordle-ai play
+  ```
+  *The AI gives you an optimal opener (e.g. `salet`). Type the color feedback from Wordle (`B`=Gray, `Y`=Yellow, `G`=Green) like `BBYBB`, and the assistant gives the next best guess!*
 
 ### Optional Extras
 

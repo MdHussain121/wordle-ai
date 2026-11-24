@@ -95,6 +95,9 @@ def play(
         settings = load_config(config)
         root = Path(data_dir) if data_dir is not None else Path(settings.general.data_dir)
         profile_dir = root / "processed" / profile
+        if not profile_dir.exists() and profile == "classic.en.5" and (root / "processed" / "strict.en.5").exists():
+            profile = "strict.en.5"
+            profile_dir = root / "processed" / profile
         loaded = load_profile(profile_dir)
         try:
             rule_mode = RuleMode(mode)
@@ -248,6 +251,9 @@ def selfplay(
         settings = load_config(config)
         root = Path(data_dir) if data_dir is not None else Path(settings.general.data_dir)
         profile_dir = root / "processed" / profile
+        if not profile_dir.exists() and profile == "classic.en.5" and (root / "processed" / "strict.en.5").exists():
+            profile = "strict.en.5"
+            profile_dir = root / "processed" / profile
         loaded = load_profile(profile_dir)
         try:
             rule_mode = RuleMode(mode)
